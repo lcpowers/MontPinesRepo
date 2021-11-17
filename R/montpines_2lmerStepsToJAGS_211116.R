@@ -3,8 +3,8 @@
 ## Modify data and assign variables needed for the JAGS model with data lags (missing years)
 ## Info about associated JAGS script later
 ##
-#### This file is the equivalent of <erbr_2lmerStepsToJAGS_210504.R>
-#### I've going through that file line-by-line, bringing over the code that seems relevant to us. 
+#### This file is the equivalent of `erbr_2lmerStepsToJAGS_210504.R`
+#### I'm going through that file line-by-line, bringing over the code that seems relevant to us. 
 ##
 
 ## Note: Details on mixed models given here: https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf
@@ -29,18 +29,20 @@ library(Hmisc)
 setwd("./R/")
 
 ## LOAD DATA --------------------------------------------------------------------------------------
-montpines <- read.csv("../fullannual data A.csv") %>% 
+montpines <- read.csv("../data/fullannual data A.csv") %>% 
   select(-1) %>% ## Get rid of first column that seems like old row numbers from elsehwere
-  filter(!TagNo%in%c(0,"1(no tag)")) %>% 
+  filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
   arrange(TagNo,Site,yr)
 
 head(montpines)
 
 ## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
 ##### Setting up the jags model with lagged values
+
+# number of rows in data
 Nallrows <- length(montpines$Site)
 
-# Years in data
+# number of years in data
 numyears <- n_distinct(montpines$yr)
 
 # Sites

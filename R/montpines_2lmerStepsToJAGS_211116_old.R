@@ -1,3 +1,6 @@
+## I've (claire) have made some edits to this file and am using it to create the mont pines equivalent
+
+
 ## Dan Doak & April Goebl 
 ## Script modified 
 ## Modify data and assign variables needed for JAGS model with data lags (missing years)

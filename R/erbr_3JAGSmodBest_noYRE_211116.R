@@ -1,3 +1,8 @@
+#### This script is identical to the one in the eriogonum_files folder, just copied here for easy access ####
+
+
+
+
 ######################################################################################################
 ######################################################################################################
 #### JAGS model file written by runjags version 2.0.4-6 on 2020-10-23 09:28:28 

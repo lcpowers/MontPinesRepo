@@ -6,3 +6,5 @@
 
 ## JAGS model called in other script
 ## Blank slate right now. Use erbr_3JAGSmodBest as template: bring over relevant lines, winnow, rename vars for mont pine data based on other script. 
+
+
