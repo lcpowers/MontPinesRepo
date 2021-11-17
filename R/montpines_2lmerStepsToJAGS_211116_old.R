@@ -1,4 +1,5 @@
 ## I've (claire) have made some edits to this file and am using it to create the mont pines equivalent
+## lines that have been commented out have been moved over (or skipped)
 
 
 ## Dan Doak & April Goebl 
@@ -87,51 +88,52 @@
 # InflNew <-  dats$InflNew 
 # InflYesNo <- dats$InflYesNo
 
+######## Skipping this part for now. Eventually will come back to reproduction ########
 
 ## Setting up variables for use in repro fitting: 
 dats$InflYesNo <- dats$InflNew
 dats$InflYesNo[dats$InflNew>1] <- 1
-rows.w.sz <- which(is.na(dats$RosNew)==FALSE)
-rows.wo.sz <- which(is.na(dats$RosNew)==TRUE)
-Ndirectszcases <- length(rows.w.sz)           #Direct measures of sz upon which to base repro
-Nindirectszcases <- length(rows.wo.sz)        #No direct measures of sz; repro to be inferred from estimated sz 
+# rows.w.sz <- which(is.na(dats$RosNew)==FALSE)
+# rows.wo.sz <- which(is.na(dats$RosNew)==TRUE)
+# Ndirectszcases <- length(rows.w.sz)           #Direct measures of sz upon which to base repro
+# Nindirectszcases <- length(rows.wo.sz)        #No direct measures of sz; repro to be inferred from estimated sz 
 rows.w.inflors <- which(dats$InflNew>0)       #Non-zero estimates of infs so repro amt can be estimated, if reproductive
 Nrows.w.inflors <- length(rows.w.inflors)
 
 
 ## Add vector to indicate if alive or dead after missing yr(s)
-dats$RowNum <- 1:nrow(dats)                           #Add a column to indicate row number
-rows.wo.sz.alive <- as.data.frame(matrix(NA, nrow=length(rows.wo.sz), ncol=2))
-colnames(rows.wo.sz.alive) <- c("Rows", "Alive")
-rows.wo.sz.alive$Rows <- rows.wo.sz
- 
-for (ww in rows.wo.sz) {                                                  #Loop over all tags with 1 or more missing yrs                      
-  tag.val <- dats$TagNew[ww]
-  tag.each <- subset(dats, dats$TagNew==tag.val)                          #Process each tag 
-  tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>ww]   #Store surv for 1st non-missing yr post each missed yr
-  rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==ww] <- tag.surv[1] 
-}
-
-rows.wo.sz.alive$Alive[is.na(rows.wo.sz.alive$Alive)] <- 0  #Change NAs to 0, these are lines where missed yr was last & recorded as dead
-rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  #Change to vector
-
-
-
+# dats$RowNum <- 1:nrow(dats)                           #Add a column to indicate row number
+# rows.wo.sz.alive <- as.data.frame(matrix(NA, nrow=length(rows.wo.sz), ncol=2))
+# colnames(rows.wo.sz.alive) <- c("Rows", "Alive")
+# rows.wo.sz.alive$Rows <- rows.wo.sz
+#  
+# for (ww in rows.wo.sz) {                                                  #Loop over all tags with 1 or more missing yrs                      
+#   tag.val <- dats$TagNew[ww]
+#   tag.each <- subset(dats, dats$TagNew==tag.val)                          #Process each tag 
+#   tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>ww]   #Store surv for 1st non-missing yr post each missed yr
+#   rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==ww] <- tag.surv[1] 
+# }
+# 
+# rows.wo.sz.alive$Alive[is.na(rows.wo.sz.alive$Alive)] <- 0  #Change NAs to 0, these are lines where missed yr was last & recorded as dead
+# rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  #Change to vector
+# 
+# 
+# 
 ## Make transect & year values numerical to use in jags as random effects 
 dats$TransectNew.num <- as.factor(dats$TransectNew)
 dats$TransectNew.num <- as.numeric(dats$TransectNew.num)
 TransectNew.num <- dats$TransectNew.num
 
-dats$Year.num <- as.factor(dats$Year)
-dats$Year.num <- as.numeric(dats$Year.num)   
-Year.num <- dats$Year.num
+# dats$Year.num <- as.factor(dats$Year)
+# dats$Year.num <- as.numeric(dats$Year.num)   
+# Year.num <- dats$Year.num
 
 ## Make a linear index of transect-year combos
 yrtranscombo=100*dats$TransectNew.num+dats$Year.num
 
 ## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): this is needed for the summing up of infl nums to predict new plts
-datayesno <- rep(1,length(dats$surv))
-datayesno[which(is.na(dats$surv)==TRUE)] <- 0 
+# datayesno <- rep(1,length(dats$surv))
+# datayesno[which(is.na(dats$surv)==TRUE)] <- 0 
 ## ------------------------------------------------------------------------------------------------
 
 
@@ -145,11 +147,11 @@ colnames(dats.newPlts) <- "TransectNew.num"
 dats.newPlts$Year.num <- rep(years)
 
 ## Identify new plants
-newPlts <- dats %>% group_by(TagNew) %>% slice(which.min(Year))   #Identify rows with 1st appearance for each plt
-newPlts <- newPlts[newPlts$Year!=2004,]                           #Remove 2004 (first year of data collection)
-sz.cutoff <- 5                                                    #Sz cutoff, above which plt was likely not recently a seedling 
-newPlts <- newPlts[newPlts$RosNew < sz.cutoff,]                   #Remove if >X rosettes (these were likely missed and are not new)
-num.newPlts <- newPlts %>% group_by(TransectNew.num, Year.num) %>% summarise(num.newPlts=n())  #Count num new plts per yr & transect
+# newPlts <- dats %>% group_by(TagNew) %>% slice(which.min(Year))   #Identify rows with 1st appearance for each plt
+# newPlts <- newPlts[newPlts$Year!=2004,]                           #Remove 2004 (first year of data collection)
+# sz.cutoff <- 5                                                    #Sz cutoff, above which plt was likely not recently a seedling 
+# newPlts <- newPlts[newPlts$RosNew < sz.cutoff,]                   #Remove if >X rosettes (these were likely missed and are not new)
+# num.newPlts <- newPlts %>% group_by(TransectNew.num, Year.num) %>% summarise(num.newPlts=n())  #Count num new plts per yr & transect
 
 ## Add number of new plants to df of each transect & year
 dats.newPlts <- left_join(dats.newPlts, num.newPlts, by=c("TransectNew.num", "Year.num"))
