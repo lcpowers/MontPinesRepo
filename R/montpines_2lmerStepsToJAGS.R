@@ -39,6 +39,8 @@ head(montpines)
 ## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
 ##### Setting up the jags model with lagged values
 
+lagvals <- montpines$lags
+
 # number of rows in data
 Nallrows <- length(montpines$Site)
 
@@ -47,21 +49,67 @@ numyears <- n_distinct(montpines$yr)
 
 # Sites
 numsites <- n_distinct(montpines$Site)
-  
+
+dbh <- montpines$DBH
+TempOctApr <- montpines$Temp.Oct.Apr.
+TempMaySept <- montpines$Temp.May.Sept.
+fog <- montpines$fog
+cloud <- montpines$cloud
+PrecipAugJuly <- montpines$Precip.Aug.July
+
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 # I think we need a growth column?
 montpines$growth <- NA
 for(i in 2:nrow(montpines)) {
   
   if(montpines$TagNo[i]==montpines$TagNo[i-montpines$lags[i]]){ # if this row and lag row have the same TagNo
-    montpines$growth[i] = montpines$DBH[i] # growth = DBH of current row minus
-      - montpines$DBH[i-montpines$lags[i]] # minus lagged DBH 
+    montpines$growth[i] = montpines$DBH[i] - # growth = DBH of current row minus 
+      montpines$DBH[i-montpines$lags[i]] # lagged DBH 
   }
 }
 rm(i)  
+
+mp_summ <- montpines %>% 
+  group_by(Site,yr) %>% 
+  summarise(#survival=sum(surv),
+            #deaths=length(surv)-sum(surv),
+            n_tags = n(),
+            meansz = mean(DBH,na.rm=T),
+            meangrow = mean(growth,na.rm=T))
+
+ggplot(mp_summ,aes(x=yr,y=n_tags,color=Site))+
+  geom_line()+
+  labs(y="Number of individuals")+
+  theme_bw()
+
+ggplot(mp_summ, aes(x=yr,y=meansz,color=Site))+
+  geom_line()
   
+ggplot(montpines,aes(x=DBH,y=growth,color=Site))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap(~Site,scales='free')+
+  theme_bw()
+
+ggplot(mp_summ,aes(x=yr,y=meangrow))+
+  geom_col()+
+  # geom_smooth()+
+  labs(y="Mean growth")+
+  facet_wrap(~Site,scales='free')+
+  theme_bw()
+
+ggplot(montpines,aes(x=yr,y=growth,na.rm=T))+
+  geom_point()+
+  geom_smooth(method='lm')+
+  facet_wrap(~Site,scales='free')+
+  theme_bw()
+
 goodrows <- which(montpines$lags>0) # This finds the rows with data
 Ngoodrows <- length(goodrows) # 8625
+
+# TO-DO: Figure out what good grow rows are for us
+# goodgrowrows <- which(montpines$lags > 0)
+# Ngoodgrowrows <- length(goodgrowrows) # 8625
 
 # Vector of lag values for good rows only
 goodlagvals <- montpines$lags[goodrows]
@@ -113,7 +161,7 @@ datayesno[which(is.na(montpines$surv)==TRUE)] <- 0
 ## Make df that will hold data containing new plants
 ## This code looks different than eriogonum new plants code but should to the same thing
 
-hist(montpines$DBH[montpines$DBH<3],breaks=30)
+hist(montpines$DBH[montpines$DBH<2],breaks=30)
 
 dbh.cutoff <- 0.5
 
@@ -123,6 +171,8 @@ newPlts <- montpines %>%
   ungroup() %>% # ungroup
   group_by(Site) %>% # For each site 
   filter(yr>min(yr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
+
+hist(newPlts$DBH,breaks=30)
 
 num.newPlts <- newPlts %>% 
   group_by(Site,yr) %>% 
