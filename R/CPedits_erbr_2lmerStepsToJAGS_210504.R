@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+## Claire is using this file as a reference for editing/building out the montpines_2lmerStepsToJAGS.R 
+## Lines of code that have been commented out have been added over there
+##
+##
+##
+>>>>>>> 68e22b8444797918514c40230f9efedeb9c466a7
 ## Dan Doak & April Goebl 
 ## Script modified 20-05-04
 ## Collaboration with Denver Botanic Gardens
@@ -9,6 +17,7 @@
 # https://bayesball.github.io/BOOK/bayesian-multiple-regression-and-logistic-models.html#bayesian-logistic-regression
 # http://www.columbia.edu/~cjd11/charles_dimaggio/DIRE/styled-4/styled-11/code-8/#logistic-regression
 
+<<<<<<< HEAD
 
 
 # rm(list=ls())
@@ -35,6 +44,34 @@ dats <- read.csv("C:/Users/april/Dropbox/CU_Boulder_PhD/DBG_Internship/erbr_TagC
 
 
 ## SET WD (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------------------------
+=======
+# 
+# 
+# # rm(list=ls())
+# # graphics.off()
+# 
+# 
+# ## LOAD PACKAGES AND FUNCTIONS --------------------------------------------------------------------
+# library(lme4)
+# library(ggplot2)
+# library(rjags)
+# library(runjags)
+# library(dplyr)
+# library(coda)
+# library(corrplot)
+# ## ------------------------------------------------------------------------------------------------
+# 
+# 
+# 
+# ## LOAD DATA --------------------------------------------------------------------------------------
+# dats <- read.csv("C:/Users/april/Dropbox/CU_Boulder_PhD/DBG_Internship/erbr_TagClust_210510.csv", header = TRUE)
+# #dats <- read.csv("erbr_tagClust4to8_210504.csv", header = TRUE)
+# ## ------------------------------------------------------------------------------------------------
+# 
+# 
+# 
+# ## SET WD (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------------------------
+>>>>>>> 68e22b8444797918514c40230f9efedeb9c466a7
 # setwd("C:/Users/april/Dropbox/CU_Boulder_PhD/DBG_Internship/R_scripts")
 ## ------------------------------------------------------------------------------------------------
 
