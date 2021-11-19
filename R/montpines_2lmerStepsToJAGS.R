@@ -24,7 +24,6 @@ library(runjags)
 library(dplyr)
 library(coda)
 library(corrplot)
-library(Hmisc)
 ## SET WD ON LOCAL COMPUTER (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------
 setwd("./R/") # should work if within project but will give error if already in this directory
 
@@ -36,29 +35,8 @@ montpines <- read.csv("../data/fullannual data A.csv") %>%
 
 head(montpines)
 
-## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
-##### Setting up the jags model with lagged values
-
-lagvals <- montpines$lags
-
-# number of rows in data
-Nallrows <- length(montpines$Site)
-
-# number of years in data
-numyears <- n_distinct(montpines$yr)
-
-# Sites
-numsites <- n_distinct(montpines$Site)
-
-dbh <- montpines$DBH
-TempOctApr <- montpines$Temp.Oct.Apr.
-TempMaySept <- montpines$Temp.May.Sept.
-fog <- montpines$fog
-cloud <- montpines$cloud
-PrecipAugJuly <- montpines$Precip.Aug.July
-
-## Identify rows that are good dependent values (ending sizes) for surv or growth  
-# I think we need a growth column?
+##### Create growth columns
+# To-do: add proportional growth column
 montpines$growth <- NA
 for(i in 2:nrow(montpines)) {
   
@@ -69,53 +47,30 @@ for(i in 2:nrow(montpines)) {
 }
 rm(i)  
 
-mp_summ <- montpines %>% 
-  group_by(Site,yr) %>% 
-  summarise(#survival=sum(surv),
-            #deaths=length(surv)-sum(surv),
-            n_tags = n(),
-            meansz = mean(DBH,na.rm=T),
-            meangrow = mean(growth,na.rm=T))
+## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
+##### Setting up the jags model with lagged values
 
-ggplot(mp_summ,aes(x=yr,y=n_tags,color=Site))+
-  geom_line()+
-  labs(y="Number of individuals")+
-  theme_bw()
+# number of rows in data
+Nallrows <- length(montpines$Site)
 
-ggplot(mp_summ, aes(x=yr,y=meansz,color=Site))+
-  geom_line()
-  
-ggplot(montpines,aes(x=DBH,y=growth,color=Site))+
-  geom_point()+
-  geom_smooth()+
-  facet_wrap(~Site,scales='free')+
-  theme_bw()
+numyears <- n_distinct(montpines$yr)
+numsites <- n_distinct(montpines$Site)
 
-ggplot(mp_summ,aes(x=yr,y=meangrow))+
-  geom_col()+
-  # geom_smooth()+
-  labs(y="Mean growth")+
-  facet_wrap(~Site,scales='free')+
-  theme_bw()
+## Identify rows that are good dependent values (ending sizes) for surv or growth  
 
-ggplot(montpines,aes(x=yr,y=growth,na.rm=T))+
-  geom_point()+
-  geom_smooth(method='lm')+
-  facet_wrap(~Site,scales='free')+
-  theme_bw()
-
+## Identify rows that are good dependent values (ending sizes) for surv or growth  
+lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
-Ngoodrows <- length(goodrows) # 8625
 
 # TO-DO: Figure out what good grow rows are for us
 # goodgrowrows <- which(montpines$lags > 0)
-# Ngoodgrowrows <- length(goodgrowrows) # 8625
 
-# Vector of lag values for good rows only
 goodlagvals <- montpines$lags[goodrows]
+Ncases <- length(goodrows)
+# Ngrowcases <- length(goodgrowrows)
+Survs <- montpines$surv
+dbh <- montpines$DBH
 
-# vector of survival values
-survs <- montpines$surv
 
 ##### eriogonum code has some repro code/info here. Skipping most of that for now #####
 rows.w.sz <- which(!is.na(montpines$DBH)) # rows with size values
@@ -123,7 +78,7 @@ rows.wo.sz <- which(is.na(montpines$DBH)) # rows without size values
 Ndirectszcases <- length(rows.w.sz)
 Nindirectszcases <- length(rows.wo.sz)
 
-## Add vector to indicate if alive or dead after missing yr(s)
+## create vector to indicate if alive or dead after missing yr(s)
 montpines$RowNum <- 1:nrow(montpines) # Add a column to indicate row number
 rows.wo.sz.alive <- as.data.frame(matrix(NA, # initiate data.frame
                                          nrow=length(rows.wo.sz),
@@ -131,12 +86,11 @@ rows.wo.sz.alive <- as.data.frame(matrix(NA, # initiate data.frame
 colnames(rows.wo.sz.alive) <- c("Rows", "Alive") 
 rows.wo.sz.alive$Rows <- rows.wo.sz # insert row indexes for rows without size
 
-
-for (i in rows.wo.sz) {                                                  # Loop over all tags with 1 or more missing yrs                      
-  tag.val <- montpines$TagNo[i] # get tag no 
+for (i in rows.wo.sz) {                                                  # Loop over all tags with 1 or more yrs of missing dbh data               
+  tag.val <- montpines$TagNo[i]                                          # get tag no 
   tag.each <- subset(montpines, montpines$TagNo==tag.val)                # Subset main data for tag i
-  tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>i]   # Store surv for 1st non-missing yr post each missed yr
-  rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==i] <- tag.surv[1] 
+  tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>i]   # Get non-missing years of survival after first year
+  rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==i] <- tag.surv[1]        # Store surv for 1st non-missing yr post each missed yr
   rm(tag.val,tag.each,tag.surv)
 }
 
@@ -145,12 +99,12 @@ rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
 
 ## At this point in eriogonum code there are lines to make transects random effects. Skipping these for now based on our conversation where Dan said it probably made more sense to treat sites as fixed effects (and no transects in the mont pines data)
 
-## Make year a factor
+## Make year numerical to use in jags as random effects 
 # Check that year columns in mont pines data are identical
-which(montpines$demoyr!=montpines$yr)
-
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
 Year.num <- montpines$Year.num
+
+##### Should we do this with site? #####
 
 ## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): this is needed for the summing up of infl nums to predict new plts
 datayesno <- rep(1,length(montpines$surv))
@@ -160,14 +114,14 @@ datayesno[which(is.na(montpines$surv)==TRUE)] <- 0
 ## Make dataframe w new plts (that are likely recent seedlings) for each transect & yr ------------
 ## Make df that will hold data containing new plants
 ## This code looks different than eriogonum new plants code but should to the same thing
+years <- unique(montpines$Year.num)
+years <- years[order(years)]
 
 hist(montpines$DBH[montpines$DBH<2],breaks=30)
-
 dbh.cutoff <- 0.5
-
 newPlts <- montpines %>% 
   group_by(TagNo) %>% # For each tag number
-  slice(which.min(yr)) %>% # Find the first occurrence year
+  slice(which.min(yr)) %>% # Find the first occurrence year for each tag and take the first obs
   ungroup() %>% # ungroup
   group_by(Site) %>% # For each site 
   filter(yr>min(yr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
@@ -178,8 +132,15 @@ num.newPlts <- newPlts %>%
   group_by(Site,yr) %>% 
   summarise(num.newPlts=n())
 
-## Coming back to this new plants section ##
+##### TO-DO: Come back to this new plants section #####
 
+
+# Vectors of climate data
+TempOctApr <- montpines$Temp.Oct.Apr.
+TempMaySept <- montpines$Temp.May.Sept.
+fog <- montpines$fog
+cloud <- montpines$cloud
+PrecipAugJuly <- montpines$Precip.Aug.July
 
 ###########################################
 
