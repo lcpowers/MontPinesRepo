@@ -38,16 +38,6 @@ head(montpines)
 ##### Create growth columns
 # To-do: add proportional growth column
 montpines$growth <- NA
-<<<<<<< HEAD:R/montpines_2lmerStepsToJAGS2.R
-for(i in 2:nrow(montpines)) {
-  
-  if(montpines$TagNo[i]==montpines$TagNo[i-montpines$lags[i]]){ # if this row and lag row have the same TagNo
-    montpines$growth[i] = montpines$DBH[i] - # growth = DBH of current row minus 
-      montpines$DBH[i-montpines$lags[i]] # lagged DBH 
-  }
-}
-rm(i)  
-=======
 montpines$propgrowth <- NA
 montpines$allgrowth <- NA
 for(i in 2:nrow(montpines)) {
@@ -68,28 +58,15 @@ for(i in 2:nrow(montpines)) {
 }
 
 rm(growthvec,i)
->>>>>>> 68e22b8444797918514c40230f9efedeb9c466a7:R/montpines_2lmerStepsToJAGS.R
 
 ## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
 ##### Setting up the jags model with lagged values
 
 # number of rows in data
 Nallrows <- length(montpines$Site)
-<<<<<<< HEAD:R/montpines_2lmerStepsToJAGS2.R
-
 numyears <- n_distinct(montpines$yr)
 numsites <- n_distinct(montpines$Site)
 
-## Identify rows that are good dependent values (ending sizes) for surv or growth  
-
-=======
-
-numyears <- n_distinct(montpines$yr)
-numsites <- n_distinct(montpines$Site)
-
-## Identify rows that are good dependent values (ending sizes) for surv or growth  
-
->>>>>>> 68e22b8444797918514c40230f9efedeb9c466a7:R/montpines_2lmerStepsToJAGS.R
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
@@ -149,11 +126,8 @@ datayesno[which(is.na(montpines$surv)==TRUE)] <- 0
 years <- unique(montpines$Year.num)
 years <- years[order(years)]
 
-<<<<<<< HEAD:R/montpines_2lmerStepsToJAGS2.R
-hist(montpines$DBH[montpines$DBH<2],breaks=30)
-=======
+
 # hist(montpines$DBH[montpines$DBH<2],breaks=30)
->>>>>>> 68e22b8444797918514c40230f9efedeb9c466a7:R/montpines_2lmerStepsToJAGS.R
 dbh.cutoff <- 0.5
 newPlts <- montpines %>% 
   group_by(TagNo) %>% # For each tag number
