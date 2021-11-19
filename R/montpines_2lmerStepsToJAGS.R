@@ -38,14 +38,26 @@ head(montpines)
 ##### Create growth columns
 # To-do: add proportional growth column
 montpines$growth <- NA
+montpines$propgrowth <- NA
+montpines$allgrowth <- NA
 for(i in 2:nrow(montpines)) {
   
   if(montpines$TagNo[i]==montpines$TagNo[i-montpines$lags[i]]){ # if this row and lag row have the same TagNo
-    montpines$growth[i] = montpines$DBH[i] - # growth = DBH of current row minus 
-      montpines$DBH[i-montpines$lags[i]] # lagged DBH 
+    montpines$growth[i] = montpines$DBH[i] - montpines$DBH[i-montpines$lags[i]] # absolute growth = DBH of current row - lagged DBH
+    montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i]
+  }
+  # to-do: make growth column that accounts for years without data by splitting growth val
+  if(montpines$lags[i]==1) montpines$allgrowth[i] = montpines$growth[i] # If there is data for two consecutive years (lag=1), don't divide growth
+  
+  if(montpines$lags[i]>1){ # If the lag is greater than 1, divide growth between all skipped years and place in column
+    
+  l = montpines$lags[i]
+  growthvec = rep(montpines$growth[i]/l,l)
+  montpines$allgrowth[(i-l+1):i] = growthvec
   }
 }
-rm(i)  
+
+rm(growthvec,i)
 
 ## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
 ##### Setting up the jags model with lagged values
@@ -117,7 +129,7 @@ datayesno[which(is.na(montpines$surv)==TRUE)] <- 0
 years <- unique(montpines$Year.num)
 years <- years[order(years)]
 
-hist(montpines$DBH[montpines$DBH<2],breaks=30)
+# hist(montpines$DBH[montpines$DBH<2],breaks=30)
 dbh.cutoff <- 0.5
 newPlts <- montpines %>% 
   group_by(TagNo) %>% # For each tag number
@@ -125,8 +137,7 @@ newPlts <- montpines %>%
   ungroup() %>% # ungroup
   group_by(Site) %>% # For each site 
   filter(yr>min(yr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
-
-hist(newPlts$DBH,breaks=30)
+# hist(newPlts$DBH,breaks=30)
 
 num.newPlts <- newPlts %>% 
   group_by(Site,yr) %>% 
