@@ -64,8 +64,11 @@ rm(growthvec,i)
 
 # number of rows in data
 Nallrows <- length(montpines$Site)
+
 numyears <- n_distinct(montpines$yr)
 numsites <- n_distinct(montpines$Site)
+
+## Identify rows that are good dependent values (ending sizes) for surv or growth  
 
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
