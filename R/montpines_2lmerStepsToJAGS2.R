@@ -67,16 +67,28 @@ Nallrows <- length(montpines$Site)
 numyears <- n_distinct(montpines$yr)
 numsites <- n_distinct(montpines$Site)
 
+# Create goodgrowrows from new lag str size variable. 
+# lagsrtsz should be equal to lags except in the case where 
+# plt died and the lag is > 0. In this case lagsrtsz = 0. 
+lagsrtsz = NULL
+for (i in 1:nrow(montpines)) { 
+  if (montpines[i,]$lags > 0 & montpines[i,]$surv == 0){ 
+    lagsrtsz[i] = 0
+  }
+  else {
+    lagval = montpines[i,]$lags
+    lagsrtsz[i] = lagval}
+}
+montpines$lagsrtsz <- lagsrtsz
+
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
-
-# TO-DO: Figure out what good grow rows are for us
-# goodgrowrows <- which(montpines$lags > 0)
+goodgrowrows <- which(montpines$lagsrtsz > 0)
 
 goodlagvals <- montpines$lags[goodrows]
 Ncases <- length(goodrows)
-# Ngrowcases <- length(goodgrowrows)
+Ngrowcases <- length(goodgrowrows)
 Survs <- montpines$surv
 dbh <- montpines$DBH
 
