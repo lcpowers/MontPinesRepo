@@ -83,7 +83,7 @@ for (i in 1:nrow(montpines)) {
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
-goodgrowrows <- which(montpines$lagsrtsz > 0)
+goodgrowrows <- which(montpines$lagsrtsz > 0) # This finds rows with data & ending DBH
 
 goodlagvals <- montpines$lags[goodrows]
 Ncases <- length(goodrows)
@@ -153,18 +153,19 @@ num.newPlts <- newPlts %>%
 
 ##### TO-DO: Come back to this new plants section #####
 
-
-# Vectors of climate data
-TempOctApr <- montpines$Temp.Oct.Apr.
-TempMaySept <- montpines$Temp.May.Sept.
-fog <- montpines$fog
-cloud <- montpines$cloud
-PrecipAugJuly <- montpines$Precip.Aug.July
+mp4jags <- montpines %>% 
+  select(DBH,surv,yr,
+         TempOctApr=Temp.Oct.Apr.,
+         TempMaySept=Temp.May.Sept.,
+         PrecipAugJuly=Precip.Aug.July,
+         fog,cloud,lagsrtsz)
 
 ###########################################
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-jags.mod <- run.jags('montpines_JAGSmod.R', n.chains=3, data=dats, burnin=5000, thin=10, sample=30000, adapt=500, method='parallel')
+jags.mod <- run.jags('claire_montpines_JAGSmodel.R', n.chains=1, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=500)
+failed.jags(c('model'))
+failed.jags('data')
 
 #save(jags.mod, file='erbr_JAGSmod_c3t10s20b5_210406.rdata')
 # saveRDS(jags.mod, "erbr_JAGSmod_c3t10s30b5_210509.rds")
@@ -195,3 +196,5 @@ jags.mod <- run.jags('montpines_JAGSmod.R', n.chains=3, data=dats, burnin=5000, 
 
 ## ** Make bar graph comparing median param ests & 80% CIs b/w diff datasets **
 ## ------------------------------------------------------------------------------------------------  
+
+
