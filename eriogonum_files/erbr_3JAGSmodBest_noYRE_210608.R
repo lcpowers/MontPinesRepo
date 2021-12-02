@@ -19,15 +19,15 @@ model{
 for(i in 1:Ncases){
   
   ## Do first lag, which must use the starting size (RosNew)
-  regression_mean[goodrows[i]-lagvals[i]+1] <- exp(grwth_intercept + grwth_RosCoef*log(RosNew[goodrows[i]-lagvals[i]]) + grwth_TempFallCoef*TempFall[goodrows[i]-lagvals[i]+1] 
+  regression_mean[goodrows[i]-lagvals[i]] <- exp(grwth_intercept + grwth_RosCoef*log(RosNew[goodrows[i]-lagvals[i]]) + grwth_TempFallCoef*TempFall[goodrows[i]-lagvals[i]+1] 
                                                + grwth_TempSummerCoef*TempSummer[goodrows[i]-lagvals[i]+1] + grwth_TempWinterCoef*TempWinter[goodrows[i]-lagvals[i]+1]
                                                + grwth_PptFallCoef*PptFall[goodrows[i]-lagvals[i]+1] + grwth_PptSummerCoef*PptSummer[goodrows[i]-lagvals[i]+1]
                                                + grwth_PptWinterCoef*PptWinter[goodrows[i]-lagvals[i]+1] + grwth_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]]) 
       
-  r.growth[goodrows[i]-lagvals[i]+1] <- exp(grwthvar_intercept + grwthvar_RosCoef*log(RosNew[goodrows[i]-lagvals[i]])) 
+  r.growth[goodrows[i]-lagvals[i]] <- exp(grwthvar_intercept + grwthvar_RosCoef*log(RosNew[goodrows[i]-lagvals[i]])) 
 
   ## Survival prob, based on the last years observed size 
-  Surv_mu[goodrows[i]-lagvals[i]+1] <- 1/(1+exp(-(surv_intercept + surv_RosCoef*log(RosNew[goodrows[i]-lagvals[i]]) + surv_PptWinterCoef*PptWinter[goodrows[i]-lagvals[i]+1] 
+  Surv_mu[goodrows[i]-lagvals[i]] <- 1/(1+exp(-(surv_intercept + surv_RosCoef*log(RosNew[goodrows[i]-lagvals[i]]) + surv_PptWinterCoef*PptWinter[goodrows[i]-lagvals[i]+1] 
                                        + surv_TempWinterCoef*TempWinter[goodrows[i]-lagvals[i]+1] + surv_TempFallCoef*TempFall[goodrows[i]-lagvals[i]+1] 
                                        + surv_TempSummerCoef*TempSummer[goodrows[i]-lagvals[i]+1] + surv_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]])))
 

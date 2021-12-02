@@ -25,7 +25,7 @@ library(dplyr)
 library(coda)
 library(corrplot)
 ## SET WD ON LOCAL COMPUTER (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------
-setwd("./R/") # should work if within project but will give error if already in this directory
+setwd("./R/") # should work if within project but will give error if already in 'R' folder
 
 ## LOAD DATA --------------------------------------------------------------------------------------
 montpines <- read.csv("../data/fullannual data A.csv") %>% 
@@ -33,31 +33,31 @@ montpines <- read.csv("../data/fullannual data A.csv") %>%
   filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
   arrange(TagNo,Site,yr)
 
-head(montpines)
+# head(montpines)
 
-##### Create growth columns
-# To-do: add proportional growth column
-montpines$growth <- NA
-montpines$propgrowth <- NA
-montpines$allgrowth <- NA
+montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
+montpines$propgrowth <- NA # (size this year minus size last year)/size last measured year skips lag >1 years
+montpines$allgrowth <- NA # Growth for all years -- deals with lag >1 years
+montpines$allpropgrowth <- NA # Proportional growth for all years -- deals with lag >1 years
+
 for(i in 2:nrow(montpines)) {
   
   if(montpines$TagNo[i]==montpines$TagNo[i-montpines$lags[i]]){ # if this row and lag row have the same TagNo
     montpines$growth[i] = montpines$DBH[i] - montpines$DBH[i-montpines$lags[i]] # absolute growth = DBH of current row - lagged DBH
-    montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i]
+    montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i-montpines$lags[i]]
   }
-  # to-do: make growth column that accounts for years without data by splitting growth val
   if(montpines$lags[i]==1) montpines$allgrowth[i] = montpines$growth[i] # If there is data for two consecutive years (lag=1), don't divide growth
   
-  if(montpines$lags[i]>1){ # If the lag is greater than 1, divide growth between all skipped years and place in column
-    
+  if(montpines$lags[i]>1){ # If the lag is greater than 1,evenely distribute growth between all skipped years
   l = montpines$lags[i]
   growthvec = rep(montpines$growth[i]/l,l)
   montpines$allgrowth[(i-l+1):i] = growthvec
+  propgrowthvec = rep(montpines$proprgrowth[i]/l,l)
+  montpines$allproprgrowth[(i-l+1):i] = propgrowthvec
   }
 }
 
-rm(growthvec,i)
+rm(propgrowthvec,growthvec,i,l)
 
 ## SETTING UP NECESSARY VARIABLES -----------------------------------------------------------------
 ##### Setting up the jags model with lagged values
@@ -83,7 +83,7 @@ for (i in 1:nrow(montpines)) {
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
 lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
-goodgrowrows <- which(montpines$lagsrtsz > 0) # This finds rows with data & ending DBH
+goodgrowrows <- which(montpines$lagsrtsz > 0) # This finds rows with good growth data
 
 goodlagvals <- montpines$lags[goodrows]
 Ncases <- length(goodrows)
@@ -154,7 +154,8 @@ num.newPlts <- newPlts %>%
 ##### TO-DO: Come back to this new plants section #####
 
 mp4jags <- montpines %>% 
-  select(DBH,surv,yr,
+  select(yr,DBH,surv,
+         lags,lagsrtsz,
          TempOctApr=Temp.Oct.Apr.,
          TempMaySept=Temp.May.Sept.,
          PrecipAugJuly=Precip.Aug.July,
@@ -163,9 +164,9 @@ mp4jags <- montpines %>%
 ###########################################
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-jags.mod <- run.jags('claire_montpines_JAGSmodel.R', n.chains=1, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=500)
-failed.jags(c('model'))
-failed.jags('data')
+jags.mod <- run.jags('montpines_JAGSmodel.R', n.chains=1, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=500)
+
+failed.jags('model')
 
 #save(jags.mod, file='erbr_JAGSmod_c3t10s20b5_210406.rdata')
 # saveRDS(jags.mod, "erbr_JAGSmod_c3t10s30b5_210509.rds")
