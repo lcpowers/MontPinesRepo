@@ -26,9 +26,8 @@ for(i in 1:Ncases){
     + grwth_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]+1] # Annual Precip coef
     + grwth_cloudCoef*cloud[goodrows[i]-lagvals[i]+1]                 # cloud coef
     + grwth_fogCoef*fog[goodrows[i]-lagvals[i]+1]                     # fog coef
-    # + grwth_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]]
+    ## + grwth_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]]
       
-  ##### WHAT IS THIS. Where does r.growth get created?
   r.growth[goodrows[i]-lagvals[i]+1] <- exp(grwthvar_intercept + grwthvar_dbhCoef*DBH[goodrows[i]-lagvals[i]]) 
   
   ## Survival prob, based on the last years observed size 
@@ -39,7 +38,7 @@ for(i in 1:Ncases){
                                                   + surv_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]+1]
                                                   + surv_cloudCoef*cloud[goodrows[i]-lagvals[i]+1]
                                                   + surv_fogCoef*fog[goodrows[i]-lagvals[i]+1])))
-                                                  # + surv_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]] ### What do we want to do with ? ###
+                                                  ## + surv_Transect_randomeffect[TransectNew.num[goodrows[i]-lagvals[i]]]))) ### What do we want to do with ? ###
                                                   
      
   ## This is the loop of remaining lagged yrs for this row i: note that the : operator is diff in jags than r & can't be decreasing, hence the use of negative lag: also, if lag=1, then this will be from 0 to -1, & the loop will be skipped 
@@ -226,93 +225,94 @@ inits{
  # "newplt_intercept" <- -1
  # "r.newplts" <- 1
 }
-inits{
-  
-  "grwth_intercept" <- 1.5
-  "grwth_dbhCoef" <- 1
-  "grwth_TempMaySeptCoef" <- 0.001
-  "grwth_TempOctAprCoef" <- 0.001
-  "grwth_PrecipAugJulyCoef" <- 0.001
-  "grwth_fogCoef" <- 0.001
-  "grwth_cloudCoef" <- 0.001
-  # "grwth_Transect_precision" <- 2
-  
-  "grwthvar_intercept" <- 0.1
-  "grwthvar_dbhCoef" <- 0.1
-  
-  "surv_intercept" <- -10
-  "surv_dbhCoef" <- -0.01
-  "surv_TempMaySeptCoef" <- 0.05
-  "surv_TempOctAprCoef" <- 0.5
-  "surv_PrecipAugJulyCoef" <- 0.5
-  "surv_fogCoef" <- 0.5
-  "surv_cloudCoef" <- 0.5
-  # "surv_Transect_precision" <- 0.001
-  # 
-  #   "reproyesno_intercept" <- -1
-  #   "reproyesno_RosCoef" <- 1
-  #   "reproyesno_TempFallCoef" <- 0.01
-  #   "reproyesno_TempSummerCoef" <- 0.01
-  #   "reproyesno_TempWinterCoef" <- 0.01   
-  #   "reproyesno_PptFallCoef" <- 0.01
-  #   "reproyesno_PptSummerCoef" <- 0.01  
-  #   "reproyesno_Transect_precision" <- 0.01
-  #   
-  #   "repro_precision" <- 0.01
-  #   "repro_intercept" <- 2
-  #   "repro_RosCoef" <- 1
-  #   "repro_PptFallCoef" <- 0.01
-  #   "repro_PptSummerCoef" <- 0.01
-  #   "repro_TempWinterCoef" <- 0.01
-  #   "repro_TempFallCoef" <- 0.01
-  #   "repro_TempSummerCoef" <- 0.01
-  #   "repro_Transect_precision" <- 0.01
-  #   
-  #   "newplt_intercept" <- -0.1
-  #   "r.newplts" <- 1
-}
-inits{
-  
-  "grwth_intercept" <- 1.5
-  "grwth_dbhCoef" <- 1
-  "grwth_TempMaySeptCoef" <- 0.001
-  "grwth_TempOctAprCoef" <- 0.001
-  "grwth_PrecipAugJulyCoef" <- 0.001
-  "grwth_fogCoef" <- 0.001
-  "grwth_cloudCoef" <- 0.001
-  # "grwth_Transect_precision" <- 2
-  
-  "grwthvar_intercept" <- 0.01
-  "grwthvar_dbhCoef" <- -0.01
-  
-  "surv_intercept" <- -20
-  "surv_dbhCoef" <- 0.01
-  "surv_TempMaySeptCoef" <- 0.05
-  "surv_TempOctAprCoef" <- 1
-  "surv_PrecipAugJulyCoef" <- 0.5
-  "surv_fogCoef" <- 0.5
-  "surv_cloudCoef" <- 0.5
-  # "surv_Transect_precision" <- 0.001
-
-  # "reproyesno_intercept" <- -5
-  # "reproyesno_RosCoef" <- 0.1
-  # "reproyesno_TempFallCoef" <- 0.01
-  # "reproyesno_TempSummerCoef" <- 0.01
-  # "reproyesno_TempWinterCoef" <- 0.01   
-  # "reproyesno_PptFallCoef" <- 0.01
-  # "reproyesno_PptSummerCoef" <- 0.01   
-  # "reproyesno_Transect_precision" <- 0.01
-  # 
-  # "repro_precision" <- 0.01
-  # "repro_intercept" <- 2
-  # "repro_RosCoef" <- 0.5
-  # "repro_PptFallCoef" <- 0.01
-  # "repro_PptSummerCoef" <- 0.01
-  # "repro_TempWinterCoef" <- 0.01
-  # "repro_TempFallCoef" <- 0.01
-  # "repro_TempSummerCoef" <- 0.01
-  # "repro_Transect_precision" <- 0.01
-  # 
-  # "newplt_intercept" <- 0
-  # "r.newplts" <- 1
-}
+## Commented out until model runs ##
+# inits{
+#   
+#   "grwth_intercept" <- 1.5
+#   "grwth_dbhCoef" <- 1
+#   "grwth_TempMaySeptCoef" <- 0.001
+#   "grwth_TempOctAprCoef" <- 0.001
+#   "grwth_PrecipAugJulyCoef" <- 0.001
+#   "grwth_fogCoef" <- 0.001
+#   "grwth_cloudCoef" <- 0.001
+#   # "grwth_Transect_precision" <- 2
+#   
+#   "grwthvar_intercept" <- 0.1
+#   "grwthvar_dbhCoef" <- 0.1
+#   
+#   "surv_intercept" <- -10
+#   "surv_dbhCoef" <- -0.01
+#   "surv_TempMaySeptCoef" <- 0.05
+#   "surv_TempOctAprCoef" <- 0.5
+#   "surv_PrecipAugJulyCoef" <- 0.5
+#   "surv_fogCoef" <- 0.5
+#   "surv_cloudCoef" <- 0.5
+#   # "surv_Transect_precision" <- 0.001
+#   # 
+#   #   "reproyesno_intercept" <- -1
+#   #   "reproyesno_RosCoef" <- 1
+#   #   "reproyesno_TempFallCoef" <- 0.01
+#   #   "reproyesno_TempSummerCoef" <- 0.01
+#   #   "reproyesno_TempWinterCoef" <- 0.01   
+#   #   "reproyesno_PptFallCoef" <- 0.01
+#   #   "reproyesno_PptSummerCoef" <- 0.01  
+#   #   "reproyesno_Transect_precision" <- 0.01
+#   #   
+#   #   "repro_precision" <- 0.01
+#   #   "repro_intercept" <- 2
+#   #   "repro_RosCoef" <- 1
+#   #   "repro_PptFallCoef" <- 0.01
+#   #   "repro_PptSummerCoef" <- 0.01
+#   #   "repro_TempWinterCoef" <- 0.01
+#   #   "repro_TempFallCoef" <- 0.01
+#   #   "repro_TempSummerCoef" <- 0.01
+#   #   "repro_Transect_precision" <- 0.01
+#   #   
+#   #   "newplt_intercept" <- -0.1
+#   #   "r.newplts" <- 1
+# }
+# inits{
+#   
+#   "grwth_intercept" <- 1.5
+#   "grwth_dbhCoef" <- 1
+#   "grwth_TempMaySeptCoef" <- 0.001
+#   "grwth_TempOctAprCoef" <- 0.001
+#   "grwth_PrecipAugJulyCoef" <- 0.001
+#   "grwth_fogCoef" <- 0.001
+#   "grwth_cloudCoef" <- 0.001
+#   # "grwth_Transect_precision" <- 2
+#   
+#   "grwthvar_intercept" <- 0.01
+#   "grwthvar_dbhCoef" <- -0.01
+#   
+#   "surv_intercept" <- -20
+#   "surv_dbhCoef" <- 0.01
+#   "surv_TempMaySeptCoef" <- 0.05
+#   "surv_TempOctAprCoef" <- 1
+#   "surv_PrecipAugJulyCoef" <- 0.5
+#   "surv_fogCoef" <- 0.5
+#   "surv_cloudCoef" <- 0.5
+#   # "surv_Transect_precision" <- 0.001
+# 
+#   # "reproyesno_intercept" <- -5
+#   # "reproyesno_RosCoef" <- 0.1
+#   # "reproyesno_TempFallCoef" <- 0.01
+#   # "reproyesno_TempSummerCoef" <- 0.01
+#   # "reproyesno_TempWinterCoef" <- 0.01   
+#   # "reproyesno_PptFallCoef" <- 0.01
+#   # "reproyesno_PptSummerCoef" <- 0.01   
+#   # "reproyesno_Transect_precision" <- 0.01
+#   # 
+#   # "repro_precision" <- 0.01
+#   # "repro_intercept" <- 2
+#   # "repro_RosCoef" <- 0.5
+#   # "repro_PptFallCoef" <- 0.01
+#   # "repro_PptSummerCoef" <- 0.01
+#   # "repro_TempWinterCoef" <- 0.01
+#   # "repro_TempFallCoef" <- 0.01
+#   # "repro_TempSummerCoef" <- 0.01
+#   # "repro_Transect_precision" <- 0.01
+#   # 
+#   # "newplt_intercept" <- 0
+#   # "r.newplts" <- 1
+# }
