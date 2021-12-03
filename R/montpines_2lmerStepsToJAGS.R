@@ -85,7 +85,7 @@ lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
 goodgrowrows <- which(montpines$lagsrtsz > 0) # This finds rows with good growth data
 
-goodlagvals <- montpines$lags[goodrows]
+lagvals <- montpines$lags[goodrows]
 Ncases <- length(goodrows)
 Ngrowcases <- length(goodgrowrows)
 Survs <- montpines$surv
@@ -159,7 +159,7 @@ mp4jags <- montpines %>%
          TempOctApr=Temp.Oct.Apr.,
          TempMaySept=Temp.May.Sept.,
          PrecipAugJuly=Precip.Aug.July,
-         fog,cloud,lagsrtsz)
+         fog,cloud)
 
 ###########################################
 
