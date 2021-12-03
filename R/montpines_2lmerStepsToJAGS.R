@@ -33,6 +33,7 @@ montpines <- read.csv("../data/fullannual data A.csv") %>%
   filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
   arrange(TagNo,Site,yr)
 
+montpines <- montpines[1:763,]
 # head(montpines)
 
 montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
@@ -81,7 +82,6 @@ for (i in 1:nrow(montpines)) {
 }
 
 ## Identify rows that are good dependent values (ending sizes) for surv or growth  
-lagvals <- montpines$lags #Full list of lags or of -1 for first observation rows
 goodrows <- which(montpines$lags>0) # This finds the rows with data
 goodgrowrows <- which(montpines$lagsrtsz > 0) # This finds rows with good growth data
 
@@ -160,6 +160,10 @@ mp4jags <- montpines %>%
          TempMaySept=Temp.May.Sept.,
          PrecipAugJuly=Precip.Aug.July,
          fog,cloud)
+mp4jags$TempOctApr[is.na(mp4jags$TempOctApr)] <- 0
+mp4jags$TempMaySept[is.na(mp4jags$TempMaySept)] <- 0
+mp4jags$PrecipAugJuly[is.na(mp4jags$PrecipAugJuly)] <- 0
+
 
 ###########################################
 
