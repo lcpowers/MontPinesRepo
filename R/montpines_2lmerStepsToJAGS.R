@@ -28,12 +28,12 @@ library(corrplot)
 setwd("./R/") # should work if within project but will give error if already in 'R' folder
 
 ## LOAD DATA --------------------------------------------------------------------------------------
-montpines <- read.csv("../data/fullannual data A.csv") %>% 
-  select(-1) %>% ## Get rid of first column that seems like old row numbers from elsehwere
-  filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
-  arrange(TagNo,Site,yr)
+montpines <- read.csv("../data/fullannual data C.csv") %>% 
+  select(-1)  ## Get rid of first column that seems like old row numbers from elsehwere
+  # filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
+  # arrange(sitetag,Site,yr)
 
-montpines <- montpines[1:763,]
+# montpines <- montpines[1:763,]
 # head(montpines)
 
 montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
@@ -168,38 +168,38 @@ mp4jags$PrecipAugJuly[is.na(mp4jags$PrecipAugJuly)] <- 0
 ###########################################
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-jags.mod <- run.jags('montpines_JAGSmodel.R', n.chains=1, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=500)
+jags.mod <- run.jags('montpines_JAGSmodel.R', n.chains=3, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=5000, method="parallel")
 
 failed.jags('model')
 
-#save(jags.mod, file='erbr_JAGSmod_c3t10s20b5_210406.rdata')
-# saveRDS(jags.mod, "erbr_JAGSmod_c3t10s30b5_210509.rds")
+save(jags.mod, file='mp_JAGSmod_211204.rdata')
+saveRDS(jags.mod, "mp_JAGSmod_211204.rds")
 ## ------------------------------------------------------------------------------------------------
 
 # 
 # ## LOOK AT MODEL OUTPUT ---------------------------------------------------------------------------
 # jags.mod <- readRDS("erbr_JAGSmod_c3t10s30b10_noYRE_210613.rds")
-# summary(jags.mod)
-# plot(jags.mod)
-# summ.mod <- summary(jags.mod)
-# tail(summ.mod[,1:5], n=32)
-# gelman.diag(jags.mod, confidence = 0.95, transform=FALSE)
-# 
-# chains <- jags.mod$mcmc
-# chains <- bind_rows(lapply(chains, as.data.frame))
-# colMeds <- apply(chains,2,median)
-# colSDs <- apply(chains,2,sd)
-# 
-# 
-# ## Look at correlation b/w params 
-# chains.1 <- chains %>% dplyr::select(!contains(c("randomeffect", "precision")))
-# chains.1 <- chains.1 %>% dplyr::select(!c(deviance, resid.sum.sq))
-# 
-# cor.chains <- cor(chains.1)
-# corrplot(cor.chains, method="circle", type="lower")
+summary(jags.mod)
+plot(jags.mod)
+summ.mod <- summary(jags.mod)
+tail(summ.mod[,1:5], n=32)
+gelman.diag(jags.mod, confidence = 0.95, transform=FALSE)
+
+chains <- jags.mod$mcmc
+chains <- bind_rows(lapply(chains, as.data.frame))
+colMeds <- apply(chains,2,median)
+colSDs <- apply(chains,2,sd)
+
+
+## Look at correlation b/w params
+chains.1 <- chains %>% dplyr::select(!contains(c("randomeffect", "precision")))
+chains.1 <- chains.1 %>% dplyr::select(!c(deviance, resid.sum.sq))
+
+cor.chains <- cor(chains.1)
+corrplot(cor.chains, method="circle", type="lower")
 
 
 ## ** Make bar graph comparing median param ests & 80% CIs b/w diff datasets **
-## ------------------------------------------------------------------------------------------------  
+## ------------------------------------------------------------------------------------------------
 
 
