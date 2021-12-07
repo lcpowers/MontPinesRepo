@@ -25,13 +25,13 @@ library(dplyr)
 library(coda)
 library(corrplot)
 ## SET WD ON LOCAL COMPUTER (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------
-setwd("./R/") # should work if within project but will give error if already in 'R' folder
+setwd("./R/") # should work if within project but will give error if already in 'R' folder or elsewhere
 
 ## LOAD DATA --------------------------------------------------------------------------------------
 montpines <- read.csv("../data/fullannual data C.csv") %>% 
   select(-1)  ## Get rid of first column that seems like old row numbers from elsehwere
-  # filter(!TagNo%in%c(0,"1(no tag)")) %>% # Get rid of what seem like extra obs. Reduces data by 3 rows
-  # arrange(sitetag,Site,yr)
+
+sum((montpines$demoyr!=montpines$yr))
 
 # montpines <- montpines[1:763,]
 # head(montpines)
@@ -43,7 +43,7 @@ montpines$allpropgrowth <- NA # Proportional growth for all years -- deals with 
 
 for(i in 2:nrow(montpines)) {
   
-  if(montpines$TagNo[i]==montpines$TagNo[i-montpines$lags[i]]){ # if this row and lag row have the same TagNo
+  if(montpines$sitetag[i]==montpines$sitetag[i-montpines$lags[i]]){ # if this row and lag row have the same sitetag
     montpines$growth[i] = montpines$DBH[i] - montpines$DBH[i-montpines$lags[i]] # absolute growth = DBH of current row - lagged DBH
     montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i-montpines$lags[i]]
   }
@@ -140,12 +140,12 @@ years <- years[order(years)]
 # hist(montpines$DBH[montpines$DBH<2],breaks=30)
 dbh.cutoff <- 0.5
 newPlts <- montpines %>% 
-  group_by(TagNo) %>% # For each tag number
+  group_by(sitetag) %>% # For each tag number
   slice(which.min(yr)) %>% # Find the first occurrence year for each tag and take the first obs
   ungroup() %>% # ungroup
   group_by(Site) %>% # For each site 
-  filter(yr>min(yr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
-# hist(newPlts$DBH,breaks=30)
+  filter(demoyr>min(demoyr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
+hist(newPlts$DBH,breaks=30)
 
 num.newPlts <- newPlts %>% 
   group_by(Site,yr) %>% 
