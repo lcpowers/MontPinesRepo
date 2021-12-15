@@ -114,7 +114,7 @@ Survs <- montpines$surv
 dbh <- montpines$DBH
 
 
-##### eriogonum code has some repro code/info here. Skipping most of that for now #####
+##### Variable setup for repro fitting #####
 rows.w.sz <- which(!is.na(montpines$DBH)) # rows with size values
 rows.wo.sz <- which(is.na(montpines$DBH)) # rows without size values
 Ndirectszcases <- length(rows.w.sz)
@@ -129,8 +129,8 @@ colnames(rows.wo.sz.alive) <- c("Rows", "Alive")
 rows.wo.sz.alive$Rows <- rows.wo.sz # insert row indexes for rows without size
 
 for (i in rows.wo.sz) {                                                  # Loop over all tags with 1 or more yrs of missing dbh data               
-  tag.val <- montpines$TagNo[i]                                          # get tag no 
-  tag.each <- subset(montpines, montpines$TagNo==tag.val)                # Subset main data for tag i
+  tag.val <- montpines$sitetag[i]                                          # get tag no 
+  tag.each <- subset(montpines, montpines$sitetag==tag.val)                # Subset main data for tag i
   tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>i]   # Get non-missing years of survival after first year
   rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==i] <- tag.surv[1]        # Store surv for 1st non-missing yr post each missed yr
   rm(tag.val,tag.each,tag.surv)
