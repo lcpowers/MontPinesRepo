@@ -29,9 +29,7 @@ setwd("./R/") # should work if within project but will give error if already in 
 
 ## LOAD DATA --------------------------------------------------------------------------------------
 montpines <- read.csv("../data/fullannual data C.csv") %>% 
-  select(-1)  ## Get rid of first column that seems like old row numbers from elsehwere
-
-sum((montpines$demoyr!=montpines$yr))
+  select(-1)  ## Get rid of first column that seems like old row numbers from elsewhere
 
 # montpines <- montpines[1:763,]
 # head(montpines)
@@ -41,21 +39,45 @@ montpines$propgrowth <- NA # (size this year minus size last year)/size last mea
 montpines$allgrowth <- NA # Growth for all years -- deals with lag >1 years
 montpines$allpropgrowth <- NA # Proportional growth for all years -- deals with lag >1 years
 
+montpines$sitetag <- paste0(montpines$Site,montpines$TagNo)
+montpines <- arrange(montpines,sitetag,demoyr)
+montpines$yr <- montpines$demoyr
+
 for(i in 2:nrow(montpines)) {
   
-  if(montpines$sitetag[i]==montpines$sitetag[i-montpines$lags[i]]){ # if this row and lag row have the same sitetag
-    montpines$growth[i] = montpines$DBH[i] - montpines$DBH[i-montpines$lags[i]] # absolute growth = DBH of current row - lagged DBH
-    montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i-montpines$lags[i]]
+  # Total growth and proportional growth, not dividing across years without data
+  if(montpines$sitetag[i]==montpines$sitetag[i-montpines$lags[i]]){ # if this row and lag row have the same sitetag (are the same individual)
+    
+    ### Growth not accounting for/filling in years without data ###
+    # Total growth = current DBH - last measured DBH
+    montpines$growth[i] = montpines$DBH[i] - montpines$DBH[i-montpines$lags[i]] 
+    
+    # Proportional growth = total growth/last measured DBH
+    montpines$propgrowth[i] = montpines$growth[i]/montpines$DBH[i-montpines$lags[i]] 
+   
+  if(!is.na(montpines$surv[i]) & montpines$surv[i]==1 & montpines$lags[i]==0) {
+    montpines$growth[i] = NA
+    montpines$propgrowth[i] = NA
   }
-  if(montpines$lags[i]==1) montpines$allgrowth[i] = montpines$growth[i] # If there is data for two consecutive years (lag=1), don't divide growth
   
-  if(montpines$lags[i]>1){ # If the lag is greater than 1,evenely distribute growth between all skipped years
-  l = montpines$lags[i]
-  growthvec = rep(montpines$growth[i]/l,l)
-  montpines$allgrowth[(i-l+1):i] = growthvec
-  propgrowthvec = rep(montpines$proprgrowth[i]/l,l)
-  montpines$allproprgrowth[(i-l+1):i] = propgrowthvec
+    ### Growth accounting for/filling in years without data ###
+  # If there is data for two consecutive years (lag=1), don't divide growth
+  if(montpines$lags[i]==1) {
+    montpines$allgrowth[i] = montpines$growth[i]
+    montpines$allpropgrowth[i] = montpines$propgrowth[i]
   }
+  # If the lag is greater than 1, distribute growth between all skipped years
+  if(montpines$lags[i]>1){ 
+
+    l = montpines$lags[i]
+    growthvec = rep(montpines$growth[i]/l,l)
+    montpines$allgrowth[(i-l+1):i] = growthvec
+    propgrowthvec = rep(montpines$propgrowth[i]/l,l)
+    montpines$allpropgrowth[(i-l+1):i] = propgrowthvec
+
+    }
+  }
+  
 }
 
 rm(propgrowthvec,growthvec,i,l)
@@ -120,15 +142,17 @@ rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
 ## At this point in eriogonum code there are lines to make transects random effects. Skipping these for now based on our conversation where Dan said it probably made more sense to treat sites as fixed effects (and no transects in the mont pines data)
 
 ## Make year numerical to use in jags as random effects 
-# Check that year columns in mont pines data are identical
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
 Year.num <- montpines$Year.num
+
+montpines$transect.num <- as.factor(montpines$Site) %>% as.numeric()
 
 ##### Should we do this with site? #####
 
 ## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): this is needed for the summing up of infl nums to predict new plts
-datayesno <- rep(1,length(montpines$surv))
-datayesno[which(is.na(montpines$surv)==TRUE)] <- 0 
+# datayesno <- rep(1,length(montpines$surv))
+# datayesno[which(is.na(montpines$surv)==TRUE)] <- 0 
+
 ## ------------------------------------------------------------------------------------------------
 
 ## Make dataframe w new plts (that are likely recent seedlings) for each transect & yr ------------
@@ -145,35 +169,44 @@ newPlts <- montpines %>%
   ungroup() %>% # ungroup
   group_by(Site) %>% # For each site 
   filter(demoyr>min(demoyr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
-hist(newPlts$DBH,breaks=30)
+# hist(newPlts$DBH,breaks=30)
 
-num.newPlts <- newPlts %>% 
-  group_by(Site,yr) %>% 
-  summarise(num.newPlts=n())
+# num.newPlts <- newPlts %>% 
+#   group_by(Site,yr) %>% 
+#   summarise(num.newPlts=n())
 
 ##### TO-DO: Come back to this new plants section #####
 
 mp4jags <- montpines %>% 
-  select(yr,DBH,surv,
+  select(demoyr,DBH,surv,
          lags,lagsrtsz,
          TempOctApr=Temp.Oct.Apr.,
          TempMaySept=Temp.May.Sept.,
          PrecipAugJuly=Precip.Aug.July,
-         fog,cloud)
-mp4jags$TempOctApr[is.na(mp4jags$TempOctApr)] <- 0
-mp4jags$TempMaySept[is.na(mp4jags$TempMaySept)] <- 0
-mp4jags$PrecipAugJuly[is.na(mp4jags$PrecipAugJuly)] <- 0
-
+         fog,cloud,
+         transect.num)
 
 ###########################################
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-jags.mod <- run.jags('montpines_JAGSmodel.R', n.chains=3, data=mp4jags, burnin=5000, thin=10, sample=30000, adapt=5000, method="parallel")
+
+modname <- "nocloud_winterT"
+jags.mod <- run.jags(paste0('montpines_JAGSmodel_',modname,'.R'), # Call to specific jags model
+                     n.chains=3,
+                     data=mp4jags,
+                     burnin=5000,
+                     thin=10,
+                     sample=30000,
+                     adapt=5000,
+                     method="parallel")
 
 failed.jags('model')
 
-save(jags.mod, file='mp_JAGSmod_211204.rdata')
-saveRDS(jags.mod, "mp_JAGSmod_211204.rds")
+
+save(jags.mod, file=paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rdata'))
+saveRDS(jags.mod, paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rds'))
+
+
 ## ------------------------------------------------------------------------------------------------
 
 # 
