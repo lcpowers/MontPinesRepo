@@ -70,7 +70,7 @@ for(i in 1:Ncases){
 #####################################################################
 
   #####################################################################
-  ## A loop that makes each reproyesno and repro amount estimate for years with observed sizes. 
+  ## A loop that makes each repro amount estimate for years with observed sizes. 
   ## maxRepro is the max repro output of largest individuals 
   for(i in 1:Ndirectszcases){
   
@@ -90,11 +90,14 @@ for(i in 1:Ncases){
     repro_size[rows.wo.sz.alive[i]] <- maxRepro/(1+exp(-(bRepro+cRepro*regression_mean[i]))) * 
                                           Surv_mu[i]
     
+    #
+    
   }
   #####################################################################
   
-  ## Loop over only rows with >0 recruits, to compare estimated to observed. 
-  # Do we need this loop?
+  ## Loop over only rows with > 0 recruits, to compare estimated to observed. 
+  # ^^ make sure all rows, not just ones w 0 recruits
+  # Do we need this loop? it's in April's code but don't fully get what it's doing 
   for(i in 1:Nrows.w.recruits) {
     
     p.recruits[i] <- r.recruits/(r.recruits + repro_size[rows.w.recruits[i]])
@@ -114,7 +117,7 @@ for(i in 1:Ncases){
     pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], reprosize) #is this getting a sum? 
     sum.repro.sizes = NULL 
     ### Ask dan about these lines . Do we need both new_plt intercept and pred.tot.recruits??? 
-    #check lag vars 
+    #ellen check lag variables 
     mn.new.plts[i] = exp(newplt_intercept + pred.tot.recruits[i]+
                            repro_TempMaySeptCoef*Temp_MaySept1[i] +
                            repro_TempOctAprCoef*TempOctApr1[i] + 
