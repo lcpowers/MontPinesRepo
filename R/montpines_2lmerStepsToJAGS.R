@@ -115,10 +115,12 @@ dbh <- montpines$DBH
 
 
 ##### Variable setup for repro fitting #####
-rows.w.sz <- which(!is.na(montpines$DBH)) # rows with size values
-rows.wo.sz <- which(is.na(montpines$DBH)) # rows without size values
+rows.w.sz <- which(!is.na(montpines$DBH)&montpines$resurveyarea==1) # rows with size values that are also in resurv area
+rows.wo.sz <- which(is.na(montpines$DBH)&montpines$resurveyarea==1) # rows without size values also in resurv area
 Ndirectszcases <- length(rows.w.sz)
 Nindirectszcases <- length(rows.wo.sz)
+rows.w.recruits <- which(montpines$newplt > 0)
+Nrows.w.recruits <- length(rows.w.inflors)
 
 ## create vector to indicate if alive or dead after missing yr(s)
 montpines$RowNum <- 1:nrow(montpines) # Add a column to indicate row number
@@ -141,13 +143,15 @@ rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
 
 ## At this point in eriogonum code there are lines to make transects random effects. Skipping these for now based on our conversation where Dan said it probably made more sense to treat sites as fixed effects (and no transects in the mont pines data)
 
-## Make year numerical to use in jags as random effects 
+## Make yr and transect numerical to use in jags as random effects 
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
 Year.num <- montpines$Year.num
 
 montpines$transect.num <- as.factor(montpines$Site) %>% as.numeric()
+transect.num <- montpines$transect.num
 
-##### Should we do this with site? #####
+# linear index of transect-year combos 
+yrtranscombo=100*montpines$transect.num+montpines$Year.num 
 
 ## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): this is needed for the summing up of infl nums to predict new plts
 # datayesno <- rep(1,length(montpines$surv))
@@ -157,26 +161,51 @@ montpines$transect.num <- as.factor(montpines$Site) %>% as.numeric()
 
 ## Make dataframe w new plts (that are likely recent seedlings) for each transect & yr ------------
 ## Make df that will hold data containing new plants
-## This code looks different than eriogonum new plants code but should to the same thing
+
 years <- unique(montpines$Year.num)
 years <- years[order(years)]
+montpines.newPlts <- as.data.frame(rep(unique(montpines$transect.num), each=length(years)))
+colnames(montpines.newPlts) <- "TransectNew.num" 
+montpines.newPlts$Year.num <- rep(years)
 
-# hist(montpines$DBH[montpines$DBH<2],breaks=30)
-dbh.cutoff <- 0.5
-newPlts <- montpines %>% 
-  group_by(sitetag) %>% # For each tag number
-  slice(which.min(yr)) %>% # Find the first occurrence year for each tag and take the first obs
-  ungroup() %>% # ungroup
-  group_by(Site) %>% # For each site 
-  filter(demoyr>min(demoyr) & DBH<dbh.cutoff) # filter for small plants (<0.5 dbh?) that first occurred after the site's first year
-# hist(newPlts$DBH,breaks=30)
+newPlts <- montpines[montpines$newplt == 1, ] # Identify new plants 
+num.newPlts <- newPlts %>%                    # Count N of newplts per yr&trans
+     group_by(transect.num,yr) %>% 
+     summarise(num.newPlts=n())
+colnames(num.newPlts) = c("TransectNew.num", "Year.num", "num.newPlts") #to match April's code 
 
-# num.newPlts <- newPlts %>% 
-#   group_by(Site,yr) %>% 
-#   summarise(num.newPlts=n())
+## Add number of new plants to df of each transect & year
+montpines.newPlts <- left_join(montpines.newPlts, num.newPlts, by=c("TransectNew.num", "Year.num"))
+montpines.newPlts$num.newPlts[is.na(montpines.newPlts$num.newPlts)] <- 0   #Change NAs (no new plants) to zeros
+montpines.newPlts$num.newPlts[montpines.newPlts$Year.num==1] <- NA         #Change new plts in year 1 to NA
 
-##### TO-DO: Come back to this new plants section #####
+## Add column so new plts in t+1 match year t. Note: variables w '1' at the end represent t+1 data
+montpines.newPlts <- montpines.newPlts %>% mutate(num.newPlts1=lead(num.newPlts))  
 
+## Add climate variables to new plants data 
+montpines.climate <- montpines %>% select(c(Year.num, Temp.Oct.Apr., 
+                                            Temp.May.Sept., Precip.Aug.July, fog, cloud)) 
+clim <- unique(montpines.climate)
+montpines.newPlts <- left_join(montpines.newPlts, clim, by="Year.num")
+montpines.newPlts <- montpines.newPlts %>% mutate(Temp.Oct.Apr.1=lead(Temp.Oct.Apr.), Temp.May.Sept.1=lead(Temp.May.Sept.), Precip.Aug.July.1=lead(Precip.Aug.July),
+                                                  fog1=lead(fog), cloud1=lead(cloud)) 
+
+## Remove 2 lines that correspond to transect-year combos that are not in the main data file
+montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
+yrtrans.unq <- unique(yrtranscombo)
+montpines.newPlts <- montpines.newPlts[montpines.newPlts$yrtranscombo %in% yrtrans.unq,]
+
+montpines.newPlts <- montpines.newPlts[is.na(montpines.newPlts$num.newPlts1) == FALSE,] #I am not sure why this is necessary but in erio code...
+newplts <- montpines.newPlts$num.newPlts1
+newplt.trans <- montpines.newPlts$TransectNew.num
+newplt.yr <- montpines.newPlts$Year.num
+newPltlines <- length(montpines.newPlts$TransectNew.num)
+
+## Make a linear index of transect-year combos for new plts
+newplt.yrtranscombo=100*newplt.trans+newplt.yr 
+
+
+## do we need to add repro variables to this mp4jags? 
 mp4jags <- montpines %>% 
   select(demoyr,DBH,surv,
          lags,lagsrtsz,
