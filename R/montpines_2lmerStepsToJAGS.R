@@ -120,7 +120,6 @@ rows.wo.sz <- which(is.na(montpines$DBH)&montpines$resurveyarea==1) # rows witho
 Ndirectszcases <- length(rows.w.sz)
 Nindirectszcases <- length(rows.wo.sz)
 rows.w.recruits <- which(montpines$newplt > 0)
-Nrows.w.recruits <- length(rows.w.inflors)
 
 ## create vector to indicate if alive or dead after missing yr(s)
 montpines$RowNum <- 1:nrow(montpines) # Add a column to indicate row number
@@ -187,8 +186,12 @@ montpines.climate <- montpines %>% select(c(Year.num, Temp.Oct.Apr.,
                                             Temp.May.Sept., Precip.Aug.July, fog, cloud)) 
 clim <- unique(montpines.climate)
 montpines.newPlts <- left_join(montpines.newPlts, clim, by="Year.num")
-montpines.newPlts <- montpines.newPlts %>% mutate(Temp.Oct.Apr.1=lead(Temp.Oct.Apr.), Temp.May.Sept.1=lead(Temp.May.Sept.), Precip.Aug.July.1=lead(Precip.Aug.July),
-                                                  fog1=lead(fog), cloud1=lead(cloud)) 
+#should this line (below) be lead or lag? (April had this as 'lead,' ours should be lag, right?)
+montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr.), 
+                                                  TempMaySept1 = lead(Temp.May.Sept.), 
+                                                  PrecipAugJuly1 = lead(Precip.Aug.July),
+                                                  fog1 = lead(fog), 
+                                                  cloud1 = lead(cloud)) 
 
 ## Remove 2 lines that correspond to transect-year combos that are not in the main data file
 montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
@@ -223,9 +226,9 @@ modname <- "nocloud_winterT"
 jags.mod <- run.jags(paste0('montpines_JAGSmodel_',modname,'.R'), # Call to specific jags model
                      n.chains=3,
                      data=mp4jags,
-                     burnin=5000,
+                     burnin=500,
                      thin=10,
-                     sample=30000,
+                     sample=3000,
                      adapt=5000,
                      method="parallel")
 
