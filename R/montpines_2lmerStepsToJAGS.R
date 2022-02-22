@@ -208,7 +208,7 @@ newPltlines <- length(montpines.newPlts$TransectNew.num)
 newplt.yrtranscombo=100*newplt.trans+newplt.yr 
 
 
-## do we need to add repro variables to this mp4jags? 
+## do we need to add repro variables to this mp4jags? Nope
 mp4jags <- montpines %>% 
   select(demoyr,DBH,surv,
          lags,lagsrtsz,
@@ -222,8 +222,8 @@ mp4jags <- montpines %>%
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
 
-modname <- "nocloud_winterT"
-jags.mod <- run.jags(paste0('montpines_JAGSmodel_',modname,'.R'), # Call to specific jags model
+modname <- ""
+jags.mod <- run.jags(paste0('montpines_JAGSmodel',modname,'.R'), # Call to specific jags model
                      n.chains=3,
                      data=mp4jags,
                      burnin=500,

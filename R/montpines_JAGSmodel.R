@@ -107,7 +107,7 @@ for(i in 1:Ncases){
   
   for (i in 1:newPltlines){
     
-    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], reprosize) #is this getting a sum? 
+    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], repro_size) #is this getting a sum? 
     
     p.newplts[i] <- r.newplts/(r.newplts+pred.tot.recruits[i])
     newplts[i] ~  dnegbin(p.newplts[i], r.newplts)
@@ -200,12 +200,12 @@ repro_Transect_precision ~ dunif(0,1)
 
 ## ADD BACK TO MONITOR (optional): dic
 # These lines are hooks to be read by runjags (they are ignored by JAGS):
-#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,repro_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef,maxRepro,reproDBHcoef,repro_intercept,repro_TempMaySeptCoef,reproTempOctAprCoef,repro_PrecipAugJulyCoef,repro_fogCoef,repro_cloudCoef
+#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,repro_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef,maxRepro,reproDBHcoef,repro_intercept,repro_TempMaySeptCoef,reproTempOctAprCoef,repro_PrecipAugJulyCoef,repro_fogCoef,repro_cloudCoef,repro_size
 #modules# glm on
 #response# DBH
 #residual# regression_residual
 #fitted# regression_fitted
-#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num
+#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,yrtranscombo,newplt.yrtranscombo
 
 
 
