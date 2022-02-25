@@ -1,11 +1,7 @@
 ## Doak Lab Monterey Pines Project
 ## Data preparation and call to JAGS script
-## Modify data and assign variables needed for the JAGS model with data lags (missing years)
-## Info about associated JAGS script later
-##
+## Modify data and assign variables needed for the JAGS model with data lags (missing years)##
 #### This file is the equivalent of `erbr_2lmerStepsToJAGS_210504.R`
-#### I'm going through that file line-by-line, bringing over the code that seems relevant to us. 
-##
 
 ## Note: Details on mixed models given here: https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf
 ## Other relevant links:
@@ -187,11 +183,11 @@ montpines.climate <- montpines %>% select(c(Year.num, Temp.Oct.Apr.,
 clim <- unique(montpines.climate)
 montpines.newPlts <- left_join(montpines.newPlts, clim, by="Year.num")
 #should this line (below) be lead or lag? (April had this as 'lead,' ours should be lag, right?)
-montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr.), 
-                                                  TempMaySept1 = lead(Temp.May.Sept.), 
-                                                  PrecipAugJuly1 = lead(Precip.Aug.July),
-                                                  fog1 = lead(fog), 
-                                                  cloud1 = lead(cloud)) 
+montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lag(Temp.Oct.Apr.), 
+                                                  TempMaySept1 = lag(Temp.May.Sept.), 
+                                                  PrecipAugJuly1 = lag(Precip.Aug.July),
+                                                  fog1 = lag(fog), 
+                                                  cloud1 = lag(cloud)) 
 
 ## Remove 2 lines that correspond to transect-year combos that are not in the main data file
 montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
@@ -208,7 +204,7 @@ newPltlines <- length(montpines.newPlts$TransectNew.num)
 newplt.yrtranscombo=100*newplt.trans+newplt.yr 
 
 
-## do we need to add repro variables to this mp4jags? Nope
+## do we need to add repro variables to this mp4jags? 
 mp4jags <- montpines %>% 
   select(demoyr,DBH,surv,
          lags,lagsrtsz,
@@ -222,8 +218,8 @@ mp4jags <- montpines %>%
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
 
-modname <- ""
-jags.mod <- run.jags(paste0('montpines_JAGSmodel',modname,'.R'), # Call to specific jags model
+modname <- "nocloud_winterT"
+jags.mod <- run.jags(paste0('montpines_JAGSmodel.R'), # Call to specific jags model
                      n.chains=3,
                      data=mp4jags,
                      burnin=500,

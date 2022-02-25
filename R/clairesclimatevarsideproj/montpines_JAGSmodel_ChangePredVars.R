@@ -70,46 +70,59 @@ for(i in 1:Ncases){
 #####################################################################
 
   #####################################################################
-  ## A loop that makes each repro amount estimate for years with observed sizes. 
+  ## A loop that makes each reproyesno and repro amount estimate for years with observed sizes. 
   ## maxRepro is the max repro output of largest individuals 
   for(i in 1:Ndirectszcases){
-      # do we still need bRepro? 
-    repro_size[rows.w.sz[i]] <- maxRepro/(1+exp(-(reproDBHcoef*DBH[i] + repro_intercept +
-                                                    repro_TempMaySeptCoef*Temp_MaySept1[i] + 
-                                                    repro_TempOctAprCoef*Temp_OctApr1[i] + 
-                                                    repro_PrecipAugJulyCoef*Precip_AugJuly1[i] + 
-                                                    repro_cloudCoef*cloud1[i] + 
-                                                    repro_fogCoef*fog1[i] + 
-                                                    repro_Transect_randomeffect[transect.num[i]])))  
+  
+    #Dan has a = maxRepro, b = bRepro, c = cRepro - I just renamed so we can keep track more easily..?
+    repro_size[rows.w.sz[i]] <- maxRepro/(1+exp(-(bRepro+cRepro*DBH[i])))
   }
   #####################################################################
   
   #####################################################################
   ## Do the same for repro estimates, for years without an observation, so based on inferred size
   for(i in 1:Nindirectszcases){
-
-    repro_size[rows.wo.sz.alive[i]] <- Surv_mu[i]*maxRepro/(1+exp(-(reproDBHcoef*regression_mean[i] + repro_intercept + 
-                                                           repro_TempMaySeptCoef*Temp_MaySept1[i] + 
-                                                           repro_TempOctAprCoef*Temp_OctApr1[i] + 
-                                                           repro_PrecipAugJulyCoef*Precip_AugJuly1[i] + 
-                                                           repro_cloudCoef*cloud1[i] + 
-                                                           repro_fogCoef*fog1[i] + 
-                                                           repro_Transect_randomeffect[transect.num[i]])))
+    
+    # repro_size is same as loop with direct size cases, except we need to multiply by 
+    # probability of being alive. is regression_mean what we want here instead of DBH? 
+    # I am not sure that indexing Surv_mu and regression_mean will give us what we want..? 
+    # do we want rows.wo.sz.alive or rows.wo.size? (since we have surv_mu in there???) 
+    repro_size[rows.wo.sz.alive[i]] <- maxRepro/(1+exp(-(bRepro+cRepro*regression_mean[i]))) * 
+                                          Surv_mu[i]
+    
   }
   #####################################################################
+  
+  ## Loop over only rows with >0 recruits, to compare estimated to observed. 
+  # Do we need this loop?
+  for(i in 1:Nrows.w.recruits) {
+    
+    p.recruits[i] <- r.recruits/(r.recruits + repro_size[rows.w.recruits[i]])
+    newPltlines[rows.w.recruits[i]] ~ dnegbin(p.recruits[i], r.recruits)
+ 
+  }
   
   
   #####################################################################
   ## This loop is getting the predicted num of tot recruits for each transect/year combo, 
   # & fitting to num of new plts a yr later. 
-  # This should be sum of reprosizes for that trans*yr 
+  # This should be sum of reprosizes for that trans*yr, * a term for climate effects in the year prior 
   # The inprod & the 1st logical are making 0,1 for whether a given line is part of each trans-yr combo
   
   for (i in 1:newPltlines){
     
-    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], repro_size) #is this getting a sum? 
+    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], reprosize) #is this getting a sum? 
+    sum.repro.sizes = NULL 
+    ### Ask dan about these lines . Do we need both new_plt intercept and pred.tot.recruits??? 
+    #check lag vars 
+    mn.new.plts[i] = exp(newplt_intercept + pred.tot.recruits[i]+
+                           repro_TempMaySeptCoef*Temp_MaySept1[i] +
+                           repro_TempOctAprCoef*TempOctApr1[i] + 
+                           repro_PrecipAugJulyCoef*PrecipAugJuly1[i] + 
+                           repro_cloudCoef*cloud1[i]+
+                           repro_fogCoef*fog1[i]) #didn't include random effect in here yet 
     
-    p.newplts[i] <- r.newplts/(r.newplts+pred.tot.recruits[i])
+    p.newplts[i] <- r.newplts/(r.newplts+mn.new.plts[i])
     newplts[i] ~  dnegbin(p.newplts[i], r.newplts)
   }
   #####################################################################
@@ -134,7 +147,7 @@ for(i in 1:Ncases){
   Survs[goodrows[i]] ~ dbern(Surv_mu[goodrows[i]])
 } #End loop to do survival predictions
 #####################################################################
-
+  
 
 ########################################    
 ## These lines give the prior distributions for the parameters to be estimated
@@ -150,7 +163,9 @@ grwth_TempMaySeptCoef ~ dunif(-2,2)
 grwth_TempOctAprCoef ~ dunif(-2,2)
 grwth_PrecipAugJulyCoef ~ dunif(-2,2)
 grwth_fogCoef ~ dunif(-2,2)
-grwth_cloudCoef ~ dunif(-2,2)
+####
+grwth_cloudCoef ~ dunif(cldmin,cldmax)
+####
 
 # ## Growth transect random effects
 for(transect.num_iterator in 1:5){
@@ -177,21 +192,13 @@ for(transect.num_iterator in 1:5){
   surv_Transect_randomeffect[transect.num_iterator] ~ dnorm(0, surv_Transect_precision) }
 surv_Transect_precision ~ dunif(0,1)
 
-## REPRODUCTION
-maxRepro ~ dunif(0, 20) #has to be positive 
-reproDBHcoef ~ dnorm(0, 10^-6)
-repro_intercept ~ dnorm(0, 10^-6)
-r.newplts ~ dnorm(0.01,0.01)
-repro_TempMaySeptCoef ~ dnorm(0, 10^-6)
-repro_TempOctAprCoef ~ dnorm(0, 10^-6)
-repro_PrecipAugJulyCoef ~ dnorm(0, 10^-6)
-repro_fogCoef ~ dnorm(0, 10^-6)
-repro_cloudCoef ~ dnorm(0, 10^-6)
+## NEW PLANTS
+maxRepro ~ dnorm(0, 10^-6)
+bRepro ~ dnorm(0, 10^-6)
+cRepro ~ dnorm(0, 10^-6)
+r.recruits ~ dnorm(0, 10^-6)
+# r.newplts ~ dgamma(0.01,0.01)
 
-## Repro transect random effects 
-for(transect.num_iterator in 1:5){
-  repro_Transect_randomeffect[transect.num_iterator] ~ dnorm(0, repro_Transect_precision) }
-repro_Transect_precision ~ dunif(0,1)
 
 #resid.sum.sq <- sum(regression_residual^2)
 } # end of model specification 
@@ -200,12 +207,12 @@ repro_Transect_precision ~ dunif(0,1)
 
 ## ADD BACK TO MONITOR (optional): dic
 # These lines are hooks to be read by runjags (they are ignored by JAGS):
-#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,repro_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef,maxRepro,reproDBHcoef,repro_intercept,repro_TempMaySeptCoef,reproTempOctAprCoef,repro_PrecipAugJulyCoef,repro_fogCoef,repro_cloudCoef
+#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef
 #modules# glm on
 #response# DBH
 #residual# regression_residual
 #fitted# regression_fitted
-#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num
+#data# Ncases,Ngrowcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,cldmin,cldmax
 
 
 
@@ -236,17 +243,27 @@ inits{
   "surv_fogCoef" <- 0.01
   "surv_cloudCoef" <- 0.01
   "surv_Transect_precision" <- 0.001
-  
-  "maxRepro" <- 0.01 #this seems unreasonable 
-  "repro_intercept" <- 0.01
-  "reproDBHcoef" < -1
+# 
+  # "reproyesno_intercept" <- -1
+  # "reproyesno_RosCoef" <- 0.1
+  # "reproyesno_TempFallCoef" <- 0.01
+  # "reproyesno_TempSummerCoef" <- 0.01
+  # "reproyesno_TempWinterCoef" <- 0.01   
+  # "reproyesno_PptFallCoef" <- 0.01
+  # "reproyesno_PptSummerCoef" <- 0.01  
+  # "reproyesno_Transect_precision" <- 0.01
+ # "repro_precision" <- 0.01
+#  "repro_intercept" <- 2
+  "repro_RosCoef" <- 1
   "repro_TempMaySeptCoef" <- 0.01
   "repro_TempOctAprCoef" <- 0.01
   "repro_PrecipAugJulyCoef" <- 0.01
   "repro_fogCoef" <- 0.01
   "repro_cloudCoef" <- 0.01
-  "repro_Transect_precision" <- 0.01
-  "r.newplts" <- 1
+ # "repro_Transect_precision" <- 0.01
+ # 
+ # "newplt_intercept" <- -1
+ # "r.newplts" <- 1
 }
 
 inits{
@@ -271,18 +288,28 @@ inits{
   "surv_fogCoef" <- 0.5
   "surv_cloudCoef" <- 0.5
   "surv_Transect_precision" <- 0.001
-  
-  "maxRepro" <- 0.01 
-  "repro_intercept" <- 0.01
-  "reproDBHcoef" < -1
+
+  #   "reproyesno_intercept" <- -1
+  #"repro_RosCoef" <- 1
   "repro_TempMaySeptCoef" <- 0.01
   "repro_TempOctAprCoef" <- 0.01
   "repro_PrecipAugJulyCoef" <- 0.01
   "repro_fogCoef" <- 0.01
   "repro_cloudCoef" <- 0.01
-  "repro_Transect_precision" <- 0.01
-  "r.newplts" <- 1
-
+  #   "reproyesno_Transect_precision" <- 0.01
+  #
+  #   "repro_precision" <- 0.01
+  #   "repro_intercept" <- 2
+  #   "repro_RosCoef" <- 1
+  #   "repro_PptFallCoef" <- 0.01
+  #   "repro_PptSummerCoef" <- 0.01
+  #   "repro_TempWinterCoef" <- 0.01
+  #   "repro_TempFallCoef" <- 0.01
+  #   "repro_TempSummerCoef" <- 0.01
+  #   "repro_Transect_precision" <- 0.01
+  #
+  #   "newplt_intercept" <- -0.1
+  #   "r.newplts" <- 1
 }
 inits{
 
@@ -307,14 +334,25 @@ inits{
   "surv_cloudCoef" <- 0.5
   "surv_Transect_precision" <- 0.001
 
-  "maxRepro" <- 0.01 #this seems unreasonable 
-  "repro_intercept" <- 0.01
-  "reproDBHcoef" < -1
-  "repro_TempMaySeptCoef" <- 0.01
-  "repro_TempOctAprCoef" <- 0.01
-  "repro_PrecipAugJulyCoef" <- 0.01
-  "repro_fogCoef" <- 0.01
-  "repro_cloudCoef" <- 0.01
-  "repro_Transect_precision" <- 0.01
-  "r.newplts" <- 1
+  # "reproyesno_intercept" <- -5
+  # "reproyesno_RosCoef" <- 0.1
+  # "reproyesno_TempFallCoef" <- 0.01
+  # "reproyesno_TempSummerCoef" <- 0.01
+  # "reproyesno_TempWinterCoef" <- 0.01
+  # "reproyesno_PptFallCoef" <- 0.01
+  # "reproyesno_PptSummerCoef" <- 0.01
+  # "reproyesno_Transect_precision" <- 0.01
+  #
+  # "repro_precision" <- 0.01
+  # "repro_intercept" <- 2
+  # "repro_RosCoef" <- 0.5
+  # "repro_PptFallCoef" <- 0.01
+  # "repro_PptSummerCoef" <- 0.01
+  # "repro_TempWinterCoef" <- 0.01
+  # "repro_TempFallCoef" <- 0.01
+  # "repro_TempSummerCoef" <- 0.01
+  # "repro_Transect_precision" <- 0.01
+  #
+  # "newplt_intercept" <- 0
+  # "r.newplts" <- 1
 }
