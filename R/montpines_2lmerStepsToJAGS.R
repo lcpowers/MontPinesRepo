@@ -20,15 +20,13 @@ library(runjags)
 library(dplyr)
 library(coda)
 library(corrplot)
+
 ## SET WD ON LOCAL COMPUTER (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------
 setwd("./R/") # should work if within project but will give error if already in 'R' folder or elsewhere
 
 ## LOAD DATA --------------------------------------------------------------------------------------
 montpines <- read.csv("../data/fullannual data C.csv") %>% 
   select(-1)  ## Get rid of first column that seems like old row numbers from elsewhere
-
-# montpines <- montpines[1:763,]
-# head(montpines)
 
 montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
 montpines$propgrowth <- NA # (size this year minus size last year)/size last measured year skips lag >1 years
@@ -136,8 +134,6 @@ for (i in rows.wo.sz) {                                                  # Loop 
 rows.wo.sz.alive$Alive[is.na(rows.wo.sz.alive$Alive)] <- 0  # Change NAs to 0, these are lines where missed yr was last & recorded as dead
 rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
 
-## At this point in eriogonum code there are lines to make transects random effects. Skipping these for now based on our conversation where Dan said it probably made more sense to treat sites as fixed effects (and no transects in the mont pines data)
-
 ## Make yr and transect numerical to use in jags as random effects 
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
 Year.num <- montpines$Year.num
@@ -157,6 +153,7 @@ yrtranscombo=100*montpines$transect.num+montpines$Year.num
 ## Make dataframe w new plts (that are likely recent seedlings) for each transect & yr ------------
 ## Make df that will hold data containing new plants
 
+###
 years <- unique(montpines$Year.num)
 years <- years[order(years)]
 montpines.newPlts <- as.data.frame(rep(unique(montpines$transect.num), each=length(years)))
@@ -203,6 +200,13 @@ newPltlines <- length(montpines.newPlts$TransectNew.num)
 ## Make a linear index of transect-year combos for new plts
 newplt.yrtranscombo=100*newplt.trans+newplt.yr 
 
+## Convert montpines new plants df into vectors
+mpcols <- colnames(montpines.newPlts)
+for(coli in mpcols){
+  tmp <- pull(montpines.newPlts,eval(as.name(coli)))
+  assign(coli,tmp)
+  rm(tmp)
+}
 
 ## do we need to add repro variables to this mp4jags? 
 mp4jags <- montpines %>% 
@@ -217,9 +221,7 @@ mp4jags <- montpines %>%
 ###########################################
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-
-modname <- "nocloud_winterT"
-jags.mod <- run.jags(paste0('montpines_JAGSmodel.R'), # Call to specific jags model
+jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
                      n.chains=3,
                      data=mp4jags,
                      burnin=500,
