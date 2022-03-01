@@ -73,7 +73,7 @@ for(i in 1:Ncases){
   ## A loop that makes each repro amount estimate for years with observed sizes. 
   ## maxRepro is the max repro output of largest individuals 
   for(i in 1:Ndirectszcases){
-      # do we still need bRepro? 
+    
     repro_size[rows.w.sz[i]] <- maxRepro/(1+exp(-(reproDBHcoef*DBH[i] + repro_intercept +
                                                     repro_TempMaySeptCoef*TempMaySept1[i] + 
                                                     repro_TempOctAprCoef*TempOctApr1[i] + 
