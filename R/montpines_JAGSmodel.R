@@ -85,15 +85,15 @@ for(i in 1:Ncases){
   #####################################################################
   
   #####################################################################
-  ## Do the same for repro estimates, for years without an observation, so based on inferred size
+  # Do the same for repro estimates, for years without an observation, so based on inferred size
   for(i in 1:Nindirectszcases){
 
-    repro_size[rows.wo.sz.alive[i]] <- Surv_mu[i]*maxRepro/(1+exp(-(reproDBHcoef*regression_mean[i] + repro_intercept + 
-                                                           repro_TempMaySeptCoef*TempMaySept1[i] + 
-                                                           repro_TempOctAprCoef*TempOctApr1[i] + 
-                                                           repro_PrecipAugJulyCoef*PrecipAugJuly1[i] + 
-                                                           repro_cloudCoef*cloud1[i] + 
-                                                           repro_fogCoef*fog1[i] + 
+    repro_size[rows.wo.sz.alive[i]] <- Surv_mu[i]*maxRepro/(1+exp(-(reproDBHcoef*regression_mean[i] + repro_intercept +
+                                                           repro_TempMaySeptCoef*TempMaySept1[i] +
+                                                           repro_TempOctAprCoef*TempOctApr1[i] +
+                                                           repro_PrecipAugJulyCoef*PrecipAugJuly1[i] +
+                                                           repro_cloudCoef*cloud1[i] +
+                                                           repro_fogCoef*fog1[i] +
                                                            repro_Transect_randomeffect[transect.num[i]])))
   }
   #####################################################################
