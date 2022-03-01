@@ -144,13 +144,13 @@ r_disp ~ dunif(0,50)
 # [A DuMouchel prior may be better than a Gamma prior]
 
 ## GROWTH  
-grwth_intercept ~ dunif(-5,5) 
-grwth_dbhCoef ~ dunif(-3,3) 
-grwth_TempMaySeptCoef ~ dunif(-2,2)
-grwth_TempOctAprCoef ~ dunif(-2,2)
-grwth_PrecipAugJulyCoef ~ dunif(-2,2)
-grwth_fogCoef ~ dunif(-2,2)
-grwth_cloudCoef ~ dunif(-2,2)
+grwth_intercept ~ dunif(-5,5) ## Do these values make sense for DBH?
+grwth_dbhCoef ~ dunif(-3,3) ## Do these values make sense for DBH?
+grwth_TempMaySeptCoef ~ dunif(-2,2) ## Do these values make sense for DBH?
+grwth_TempOctAprCoef ~ dunif(-2,2) ## Do these values make sense for DBH?
+grwth_PrecipAugJulyCoef ~ dunif(-2,2) ## Do these values make sense for DBH?
+grwth_fogCoef ~ dunif(-2,2) ## Do these values make sense for DBH?
+grwth_cloudCoef ~ dunif(-2,2) ## Do these values make sense for DBH? 
 
 # ## Growth transect random effects
 for(transect.num_iterator in 1:5){
@@ -159,18 +159,18 @@ grwth_Transect_precision ~ dunif(1,10)
 
 
 ## VARIANCE IN GROWTH
-grwthvar_intercept ~ dunif(-3,3) 
-grwthvar_dbhCoef ~ dunif(-3,3) 
+grwthvar_intercept ~ dunif(-3,3) ## Do these values make sense for DBH?
+grwthvar_dbhCoef ~ dunif(-3,3) ## Do these values make sense for DBH?
 
 
 ## SURVIVAL
-surv_intercept ~  dnorm(0, 10^-6)
-surv_dbhCoef ~  dnorm(0, 10^-6)
-surv_TempMaySeptCoef ~ dnorm(0, 10^-6)
-surv_TempOctAprCoef ~ dnorm(0, 10^-6)
-surv_PrecipAugJulyCoef ~ dnorm(0, 10^-6) 
-surv_fogCoef ~ dnorm(0, 10^-6)
-surv_cloudCoef ~ dnorm(0, 10^-6)
+surv_intercept ~  dnorm(0, 10^-6) ## Adjust
+surv_dbhCoef ~  dnorm(0, 10^-6) ## Adjust
+surv_TempMaySeptCoef ~ dnorm(0, 10^-6) ## Adjust
+surv_TempOctAprCoef ~ dnorm(0, 10^-6) ## Adjust
+surv_PrecipAugJulyCoef ~ dnorm(0, 10^-6) ## Adjust
+surv_fogCoef ~ dnorm(0, 10^-6) ## Adjust
+surv_cloudCoef ~ dnorm(0, 10^-6) ## Adjust
 
 ## Survival transect random effects
 for(transect.num_iterator in 1:5){
@@ -178,9 +178,9 @@ for(transect.num_iterator in 1:5){
 surv_Transect_precision ~ dunif(0,1)
 
 ## REPRODUCTION
-maxRepro ~ dunif(0, 20) #has to be positive 
-reproDBHcoef ~ dnorm(0, 10^-6)
-repro_intercept ~ dnorm(0, 10^-6)
+maxRepro ~ dunif(0, 20) # has to be positive 
+reproDBHcoef ~ dnorm(0, 10^-6) ## Do these values make sense for our measures of repro?
+repro_intercept ~ dnorm(0, 10^-6) 
 r.newplts ~ dnorm(0.01,0.01)
 repro_TempMaySeptCoef ~ dnorm(0, 10^-6)
 repro_TempOctAprCoef ~ dnorm(0, 10^-6)
@@ -196,7 +196,7 @@ repro_Transect_precision ~ dunif(0,1)
 #resid.sum.sq <- sum(regression_residual^2)
 } # end of model specification 
 
-
+## do we need to add anything to monitor?
 
 ## ADD BACK TO MONITOR (optional): dic
 # These lines are hooks to be read by runjags (they are ignored by JAGS):
@@ -205,7 +205,7 @@ repro_Transect_precision ~ dunif(0,1)
 #response# DBH
 #residual# regression_residual
 #fitted# regression_fitted
-#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1, cloud1
+#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1,cloud1
 
 
 
