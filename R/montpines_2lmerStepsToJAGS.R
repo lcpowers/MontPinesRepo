@@ -107,12 +107,20 @@ Ngrowcases <- length(goodgrowrows)
 Survs <- montpines$surv
 dbh <- montpines$DBH
 
+#should think about these NAs at some point
+montpines <- montpines %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr., default = NA), 
+                                                  TempMaySept1 = lead(Temp.May.Sept., default = NA), 
+                                                  PrecipAugJuly1 = lead(Precip.Aug.July, default = NA),
+                                                  fog1 = lead(fog, default = NA), 
+                                                  cloud1 = lead(cloud, default = NA)) 
+
+
 
 ##### Variable setup for repro fitting #####
 rows.w.sz <- which(!is.na(montpines$DBH)&montpines$resurveyarea==1) # rows with size values that are also in resurv area
 rows.wo.sz <- which(is.na(montpines$DBH)&montpines$resurveyarea==1) # rows without size values also in resurv area
 Ndirectszcases <- length(rows.w.sz)
-Nindirectszcases <- length(rows.wo.sz)
+#Nindirectszcases <- length(rows.wo.sz)
 rows.w.recruits <- which(montpines$newplt > 0)
 
 ## create vector to indicate if alive or dead after missing yr(s)
@@ -122,6 +130,7 @@ rows.wo.sz.alive <- as.data.frame(matrix(NA, # initiate data.frame
                                          ncol=2))
 colnames(rows.wo.sz.alive) <- c("Rows", "Alive") 
 rows.wo.sz.alive$Rows <- rows.wo.sz # insert row indexes for rows without size
+Nindirectszcases <- length(rows.wo.sz)
 
 for (i in rows.wo.sz) {                                                  # Loop over all tags with 1 or more yrs of missing dbh data               
   tag.val <- montpines$sitetag[i]                                          # get tag no 
@@ -133,6 +142,7 @@ for (i in rows.wo.sz) {                                                  # Loop 
 
 rows.wo.sz.alive$Alive[is.na(rows.wo.sz.alive$Alive)] <- 0  # Change NAs to 0, these are lines where missed yr was last & recorded as dead
 rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
+rows.wo.sz.alive<- which(rows.wo.sz.alive==1) # row NUMBERS without size values also in resurv area
 
 ## Make yr and transect numerical to use in jags as random effects 
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
@@ -162,12 +172,13 @@ montpines.newPlts$Year.num <- rep(years)
 
 newPlts <- montpines[montpines$newplt == 1, ] # Identify new plants 
 num.newPlts <- newPlts %>%                    # Count N of newplts per yr&trans
-     group_by(transect.num,yr) %>% 
+     group_by(transect.num,Year.num) %>% 
      summarise(num.newPlts=n())
 colnames(num.newPlts) = c("TransectNew.num", "Year.num", "num.newPlts") #to match April's code 
 
 ## Add number of new plants to df of each transect & year
-montpines.newPlts <- left_join(montpines.newPlts, num.newPlts, by=c("TransectNew.num", "Year.num"))
+montpines.newPlts <- left_join(montpines.newPlts, num.newPlts, 
+                               by=c("TransectNew.num", "Year.num"))
 montpines.newPlts$num.newPlts[is.na(montpines.newPlts$num.newPlts)] <- 0   #Change NAs (no new plants) to zeros
 montpines.newPlts$num.newPlts[montpines.newPlts$Year.num==1] <- NA         #Change new plts in year 1 to NA
 
@@ -176,15 +187,17 @@ montpines.newPlts <- montpines.newPlts %>% mutate(num.newPlts1=lead(num.newPlts)
 
 ## Add climate variables to new plants data 
 montpines.climate <- montpines %>% select(c(Year.num, Temp.Oct.Apr., 
-                                            Temp.May.Sept., Precip.Aug.July, fog, cloud)) 
+                                            Temp.May.Sept., Precip.Aug.July, fog, cloud, 
+                                            TempOctApr1, TempMaySept1, PrecipAugJuly1, 
+                                            fog1, cloud1)) 
 clim <- unique(montpines.climate)
 montpines.newPlts <- left_join(montpines.newPlts, clim, by="Year.num")
 #should this line (below) be lead or lag? (April had this as 'lead,' ours should be lag, right?)
-montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lag(Temp.Oct.Apr.), 
-                                                  TempMaySept1 = lag(Temp.May.Sept.), 
-                                                  PrecipAugJuly1 = lag(Precip.Aug.July),
-                                                  fog1 = lag(fog), 
-                                                  cloud1 = lag(cloud)) 
+#montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr.), 
+#                                                  TempMaySept1 = lead(Temp.May.Sept.), 
+#                                                  PrecipAugJuly1 = lead(Precip.Aug.July),
+#                                                  fog1 = lead(fog), 
+#                                                  cloud1 = lead(cloud)) 
 
 ## Remove 2 lines that correspond to transect-year combos that are not in the main data file
 montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
@@ -208,7 +221,7 @@ for(coli in mpcols){
   rm(tmp)
 }
 
-## do we need to add repro variables to this mp4jags? 
+
 mp4jags <- montpines %>% 
   select(demoyr,DBH,surv,
          lags,lagsrtsz,
@@ -216,6 +229,8 @@ mp4jags <- montpines %>%
          TempMaySept=Temp.May.Sept.,
          PrecipAugJuly=Precip.Aug.July,
          fog,cloud,
+         TempOctApr1, TempMaySept1, 
+         PrecipAugJuly1, fog1, cloud1,
          transect.num)
 
 ###########################################
