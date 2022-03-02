@@ -107,20 +107,25 @@ Ngrowcases <- length(goodgrowrows)
 Survs <- montpines$surv
 dbh <- montpines$DBH
 
-#should think about these NAs at some point
-montpines <- montpines %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr., default = NA), 
-                                                  TempMaySept1 = lead(Temp.May.Sept., default = NA), 
-                                                  PrecipAugJuly1 = lead(Precip.Aug.July, default = NA),
-                                                  fog1 = lead(fog, default = NA), 
-                                                  cloud1 = lead(cloud, default = NA)) 
+# NA values exist in lead/lags - using avg to fill in for now just to try to get this running error-free 
+# should we just exclude these rows ?? Replacing with zeros for now 
 
+montpines <- montpines %>% mutate(Temp.May.Sept. = replace_na(Temp.May.Sept., mean(Temp.May.Sept., na.rm = T)),
+                                  Precip.Aug.July = replace_na(Precip.Aug.July, mean(Precip.Aug.July, na.rm = T)), 
+                                  Temp.Oct.Apr. = replace_na(Temp.Oct.Apr., mean(Temp.Oct.Apr., na.rm = T)))
+
+#compute lagged values 
+montpines <- montpines %>% mutate(TempOctApr1 = lag(Temp.Oct.Apr., default = mean(Temp.Oct.Apr., na.rm = T)), 
+                                                  TempMaySept1 = lag(Temp.May.Sept., default = mean(Temp.May.Sept., na.rm = T)), 
+                                                  PrecipAugJuly1 = lag(Precip.Aug.July, default = mean(Precip.Aug.July, na.rm = T)),
+                                                  fog1 = lag(fog, default = mean(fog)), 
+                                                  cloud1 = lag(cloud, default = mean(cloud))) 
 
 
 ##### Variable setup for repro fitting #####
 rows.w.sz <- which(!is.na(montpines$DBH)&montpines$resurveyarea==1) # rows with size values that are also in resurv area
 rows.wo.sz <- which(is.na(montpines$DBH)&montpines$resurveyarea==1) # rows without size values also in resurv area
 Ndirectszcases <- length(rows.w.sz)
-#Nindirectszcases <- length(rows.wo.sz)
 rows.w.recruits <- which(montpines$newplt > 0)
 
 ## create vector to indicate if alive or dead after missing yr(s)
@@ -130,10 +135,10 @@ rows.wo.sz.alive <- as.data.frame(matrix(NA, # initiate data.frame
                                          ncol=2))
 colnames(rows.wo.sz.alive) <- c("Rows", "Alive") 
 rows.wo.sz.alive$Rows <- rows.wo.sz # insert row indexes for rows without size
-Nindirectszcases <- length(rows.wo.sz)
+
 
 for (i in rows.wo.sz) {                                                  # Loop over all tags with 1 or more yrs of missing dbh data               
-  tag.val <- montpines$sitetag[i]                                          # get tag no 
+  tag.val <- montpines$sitetag[i]                                         # get tag no 
   tag.each <- subset(montpines, montpines$sitetag==tag.val)                # Subset main data for tag i
   tag.surv <- tag.each$surv[!is.na(tag.each$surv) & tag.each$RowNum>i]   # Get non-missing years of survival after first year
   rows.wo.sz.alive$Alive[rows.wo.sz.alive$Rows==i] <- tag.surv[1]        # Store surv for 1st non-missing yr post each missed yr
@@ -141,8 +146,14 @@ for (i in rows.wo.sz) {                                                  # Loop 
 }
 
 rows.wo.sz.alive$Alive[is.na(rows.wo.sz.alive$Alive)] <- 0  # Change NAs to 0, these are lines where missed yr was last & recorded as dead
-rows.wo.sz.alive <- rows.wo.sz.alive$Alive                  # Change to vector
-rows.wo.sz.alive<- which(rows.wo.sz.alive==1) # row NUMBERS without size values also in resurv area
+rows.wo.sz.alive <- subset(rows.wo.sz.alive, Alive == 1)
+rows.wo.sz.alive <- rows.wo.sz.alive$Rows                   # now these correspond to row numbers in main df 
+Nindirectszcases <- length(rows.wo.sz.alive)
+
+#rows not included in either rows.wo.sz.alive or rows.w.sz: 
+included.repro.rows = c(rows.wo.sz.alive, rows.w.sz)
+rows.excluded.repro <- base::setdiff(montpines$RowNum, included.repro.rows) #setdiff finds elements in X but not in Y 
+Nexcludedcases <- length(rows.excluded.repro)
 
 ## Make yr and transect numerical to use in jags as random effects 
 montpines$Year.num <- as.factor(montpines$demoyr) %>% as.numeric()
@@ -185,20 +196,6 @@ montpines.newPlts$num.newPlts[montpines.newPlts$Year.num==1] <- NA         #Chan
 ## Add column so new plts in t+1 match year t. Note: variables w '1' at the end represent t+1 data
 montpines.newPlts <- montpines.newPlts %>% mutate(num.newPlts1=lead(num.newPlts))  
 
-## Add climate variables to new plants data 
-montpines.climate <- montpines %>% select(c(Year.num, Temp.Oct.Apr., 
-                                            Temp.May.Sept., Precip.Aug.July, fog, cloud, 
-                                            TempOctApr1, TempMaySept1, PrecipAugJuly1, 
-                                            fog1, cloud1)) 
-clim <- unique(montpines.climate)
-montpines.newPlts <- left_join(montpines.newPlts, clim, by="Year.num")
-#should this line (below) be lead or lag? (April had this as 'lead,' ours should be lag, right?)
-#montpines.newPlts <- montpines.newPlts %>% mutate(TempOctApr1 = lead(Temp.Oct.Apr.), 
-#                                                  TempMaySept1 = lead(Temp.May.Sept.), 
-#                                                  PrecipAugJuly1 = lead(Precip.Aug.July),
-#                                                  fog1 = lead(fog), 
-#                                                  cloud1 = lead(cloud)) 
-
 ## Remove 2 lines that correspond to transect-year combos that are not in the main data file
 montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
 yrtrans.unq <- unique(yrtranscombo)
@@ -213,7 +210,10 @@ newPltlines <- length(montpines.newPlts$TransectNew.num)
 ## Make a linear index of transect-year combos for new plts
 newplt.yrtranscombo=100*newplt.trans+newplt.yr 
 
-## Convert montpines new plants df into vectors
+## Convert montpines new plants df into vectors. Rename columns to help keep indexing straight. 
+colnames(montpines.newPlts) <- paste0('mp_newplt', colnames(montpines.newPlts))
+colnames(newPlts) <- paste0('newplt_', colnames(newPlts))
+
 mpcols <- colnames(montpines.newPlts)
 for(coli in mpcols){
   tmp <- pull(montpines.newPlts,eval(as.name(coli)))
@@ -241,8 +241,8 @@ jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
                      data=mp4jags,
                      burnin=500,
                      thin=10,
-                     sample=3000,
-                     adapt=5000,
+                     sample=300,
+                     adapt=100,
                      method="parallel")
 
 failed.jags('model')

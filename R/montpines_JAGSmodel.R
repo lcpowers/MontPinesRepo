@@ -74,30 +74,33 @@ for(i in 1:Ncases){
   ## maxRepro is the max repro output of largest individuals 
   for(i in 1:Ndirectszcases){
     
-    repro_size[rows.w.sz[i]] <- maxRepro/(1+exp(-(reproDBHcoef*DBH[i] + repro_intercept +
-                                                    repro_TempMaySeptCoef*TempMaySept1[i] + 
-                                                    repro_TempOctAprCoef*TempOctApr1[i] + 
-                                                    repro_PrecipAugJulyCoef*PrecipAugJuly1[i] + 
-                                                    repro_cloudCoef*cloud1[i] + 
-                                                    repro_fogCoef*fog1[i] + 
-                                                    repro_Transect_randomeffect[transect.num[i]])))  
+    repro_size[rows.w.sz[i]] <- maxRepro/(1+exp(-(reproDBHcoef*DBH[rows.w.sz[i]] + repro_intercept +
+                                                    repro_TempMaySeptCoef*TempMaySept1[rows.w.sz[i]] + 
+                                                    repro_TempOctAprCoef*TempOctApr1[rows.w.sz[i]] + 
+                                                    repro_PrecipAugJulyCoef*PrecipAugJuly1[rows.w.sz[i]] + 
+                                                    repro_cloudCoef*cloud1[rows.w.sz[i]] + 
+                                                    repro_fogCoef*fog1[rows.w.sz[i]] + 
+                                                    repro_Transect_randomeffect[transect.num[rows.w.sz[i]]])))  
   }
   #####################################################################
   
   #####################################################################
   # Do the same for repro estimates, for years without an observation, so based on inferred size
   for(i in 1:Nindirectszcases){
-
-    repro_size[rows.wo.sz.alive[i]] <- Surv_mu[i]*maxRepro/(1+exp(-(reproDBHcoef*regression_mean[i] + repro_intercept +
-                                                           repro_TempMaySeptCoef*TempMaySept1[i] +
-                                                           repro_TempOctAprCoef*TempOctApr1[i] +
-                                                           repro_PrecipAugJulyCoef*PrecipAugJuly1[i] +
-                                                           repro_cloudCoef*cloud1[i] +
-                                                           repro_fogCoef*fog1[i] +
-                                                           repro_Transect_randomeffect[transect.num[i]])))
+  
+    repro_size[rows.wo.sz.alive[i]] <- Surv_mu[rows.wo.sz.alive[i]]*maxRepro/(1+exp(-(reproDBHcoef*regression_mean[rows.wo.sz.alive[i]] + repro_intercept +
+                                                           repro_TempMaySeptCoef*TempMaySept1[rows.wo.sz.alive[i]] +
+                                                           repro_TempOctAprCoef*TempOctApr1[rows.wo.sz.alive[i]] +
+                                                           repro_PrecipAugJulyCoef*PrecipAugJuly1[rows.wo.sz.alive[i]] +
+                                                           repro_cloudCoef*cloud1[rows.wo.sz.alive[i]] +
+                                                           repro_fogCoef*fog1[rows.wo.sz.alive[i]] +
+                                                           repro_Transect_randomeffect[transect.num[rows.wo.sz.alive[i]]])))
   }
   #####################################################################
-  
+  #this is a little loop to maybe help debug repro fitting - it is throwing an error with some undefined repro rows ? 
+  for (i in 1:Nexcludedcases){
+    repro_size[rows.excluded.repro[i]] <- 0 
+  }
   
   #####################################################################
   ## This loop is getting the predicted num of tot recruits for each transect/year combo, 
@@ -107,33 +110,34 @@ for(i in 1:Ncases){
   
   for (i in 1:newPltlines){
     
-    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], repro_size) #is this getting a sum? 
+    pred.tot.recruits[i] = inprod(yrtranscombo==newplt.yrtranscombo[i], repro_size) 
     
     p.newplts[i] <- r.newplts/(r.newplts+pred.tot.recruits[i])
+    
     newplts[i] ~  dnegbin(p.newplts[i], r.newplts)
   }
   #####################################################################
   
   
   
-#####################################################################
-## Then, a loop that matches the estimated sizes with the observed sizes, just for rows with observed sizes
-for(i in 1:Ngrowcases){
-  ## These lines describe the response distribution and linear model terms
+  #####################################################################
+  ## Then, a loop that matches the estimated sizes with the observed sizes, just for rows with observed sizes
+  for(i in 1:Ngrowcases){
+    ## These lines describe the response distribution and linear model terms
+    
+    regression_residual[i] <- DBH[goodgrowrows[i]] - regression_mean[goodgrowrows[i]]
+    DBH[goodgrowrows[i]] ~ dnorm(regression_mean[goodgrowrows[i]], 1/r.growth[goodgrowrows[i]])
+    
+  } #End of going through cases for sizes
+  #####################################################################
   
-  regression_residual[i] <- DBH[goodgrowrows[i]] - regression_mean[goodgrowrows[i]]
-  DBH[goodgrowrows[i]] ~ dnorm(regression_mean[goodgrowrows[i]], 1/r.growth[goodgrowrows[i]])
-  
-} #End of going through cases for sizes
-#####################################################################
-
-#####################################################################
-## Now a loop to do survival predictions, for the ending years with observations
-for(i in 1:Ncases){
-  ## Fit the survival function:
-  Survs[goodrows[i]] ~ dbern(Surv_mu[goodrows[i]])
-} #End loop to do survival predictions
-#####################################################################
+  #####################################################################
+  ## Now a loop to do survival predictions, for the ending years with observations
+  for(i in 1:Ncases){
+    ## Fit the survival function:
+    Survs[goodrows[i]] ~ dbern(Surv_mu[goodrows[i]])
+  } #End loop to do survival predictions
+  #####################################################################
 
 
 ########################################    
@@ -200,12 +204,12 @@ repro_Transect_precision ~ dunif(0,1)
 
 ## ADD BACK TO MONITOR (optional): dic
 # These lines are hooks to be read by runjags (they are ignored by JAGS):
-#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,repro_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef,maxRepro,reproDBHcoef,repro_intercept,repro_TempMaySeptCoef,reproTempOctAprCoef,repro_PrecipAugJulyCoef,repro_fogCoef,repro_cloudCoef,repro_size
+#monitor# deviance,grwth_intercept,grwth_Transect_randomeffect,surv_Transect_randomeffect,repro_Transect_randomeffect,grwth_dbhCoef,grwth_TempMaySeptCoef,grwth_TempOctAprCoef,grwth_PrecipAugJulyCoef,grwth_fogCoef,grwth_cloudCoef,grwthvar_intercept,surv_intercept,surv_dbhCoef,surv_TempMaySeptCoef,surv_TempOctAprCoef,surv_PrecipAugJulyCoef,surv_fogCoef,surv_cloudCoef,maxRepro,reproDBHcoef,repro_intercept,repro_TempMaySeptCoef,repro_TempOctAprCoef,repro_PrecipAugJulyCoef,repro_fogCoef,repro_cloudCoef,repro_size
 #modules# glm on
 #response# DBH
 #residual# regression_residual
 #fitted# regression_fitted
-#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1,cloud1
+#data# Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,Nexcludedcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,rows.excluded.repro,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1,cloud1
 
 
 
