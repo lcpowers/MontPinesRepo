@@ -28,6 +28,9 @@ setwd("./R/") # should work if within project but will give error if already in 
 montpines <- read.csv("../data/fullannual data C.csv") %>% 
   select(-1)  ## Get rid of first column that seems like old row numbers from elsewhere
 
+# Subset of data to look at reprosize
+# montpines <- montpines[1:500,]
+
 montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
 montpines$propgrowth <- NA # (size this year minus size last year)/size last measured year skips lag >1 years
 montpines$allgrowth <- NA # Growth for all years -- deals with lag >1 years
@@ -234,6 +237,21 @@ mp4jags <- montpines %>%
          transect.num)
 
 ###########################################
+# These are variables used in the prior distributions that are meant to set a climate variable to zero or not
+cldmin = -1e-10
+cldmax = 1e-10
+
+fogmin = -1e-10
+fogmax = 1e-10
+
+tmayseptmin = -1e-10
+tmayseptmax = 1e-10
+
+toctaprmin = -1e-10
+toctaprmax = 1e-10
+
+precipmin = -1e-10
+precipmax = 1e-10
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
 jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
@@ -245,11 +263,7 @@ jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
                      adapt=100,
                      method="parallel")
 
-failed.jags('model')
-
-
-save(jags.mod, file=paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rdata'))
-saveRDS(jags.mod, paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rds'))
+# failed.jags('model')
 
 
 ## ------------------------------------------------------------------------------------------------
@@ -280,4 +294,4 @@ corrplot(cor.chains, method="circle", type="lower")
 ## ** Make bar graph comparing median param ests & 80% CIs b/w diff datasets **
 ## ------------------------------------------------------------------------------------------------
 
-
+parallel.seeds("base::BaseRNG",4)
