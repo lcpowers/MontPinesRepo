@@ -172,7 +172,8 @@ saveRDS(jags.mod, "erbr_JAGSmod_c3t10s30b5_210509.rds")
 
 
 ## LOOK AT MODEL OUTPUT ---------------------------------------------------------------------------
-jags.mod <- readRDS("erbr_JAGSmod_c3t10s30b10_noYRE_210613.rds")
+setwd("~/Documents/Doak Lab/Monterey Pines/MontPinesRepo/R/modeloutput")
+jags.mod <- readRDS("mp_JAGSmod_test_03.9.22_2022-03-09.rds")
 summary(jags.mod)
 plot(jags.mod)
 summ.mod <- summary(jags.mod)
