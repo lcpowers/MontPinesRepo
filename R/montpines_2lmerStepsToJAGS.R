@@ -28,6 +28,8 @@ setwd("./R/") # should work if within project but will give error if already in 
 montpines <- read.csv("../data/fullannual data C.csv") %>% 
   select(-1)  ## Get rid of first column that seems like old row numbers from elsewhere
 
+montpines <- subset(montpines, montpines$demoyr < 2015) # Get rid of wonky years
+
 montpines$growth <- NA # Size this year minus size last measured year - skips lag>1 years
 montpines$propgrowth <- NA # (size this year minus size last year)/size last measured year skips lag >1 years
 montpines$allgrowth <- NA # Growth for all years -- deals with lag >1 years
@@ -37,6 +39,7 @@ montpines$sitetag <- paste0(montpines$Site,montpines$TagNo)
 montpines <- arrange(montpines,sitetag,demoyr)
 montpines$yr <- montpines$demoyr
 
+#Growth loop
 for(i in 2:nrow(montpines)) {
   
   # Total growth and proportional growth, not dividing across years without data
@@ -87,6 +90,7 @@ numsites <- n_distinct(montpines$Site)
 # Create goodgrowrows from new lag str size variable. 
 # lagsrtsz should be equal to lags except in the case where 
 # plt died and the lag is > 0. In this case lagsrtsz = 0. 
+
 montpines$lagsrtsz = NA
 for (i in 1:nrow(montpines)) { 
   if (montpines[i,]$lags > 0 & montpines[i,]$surv == 0){ 
@@ -114,7 +118,7 @@ montpines <- montpines %>% mutate(Temp.May.Sept. = replace_na(Temp.May.Sept., me
                                   Precip.Aug.July = replace_na(Precip.Aug.July, mean(Precip.Aug.July, na.rm = T)), 
                                   Temp.Oct.Apr. = replace_na(Temp.Oct.Apr., mean(Temp.Oct.Apr., na.rm = T)))
 
-#compute lagged values 
+#compute lagged values. again using the average to fill in NA years for now 
 montpines <- montpines %>% mutate(TempOctApr1 = lag(Temp.Oct.Apr., default = mean(Temp.Oct.Apr., na.rm = T)), 
                                                   TempMaySept1 = lag(Temp.May.Sept., default = mean(Temp.May.Sept., na.rm = T)), 
                                                   PrecipAugJuly1 = lag(Precip.Aug.July, default = mean(Precip.Aug.July, na.rm = T)),
@@ -165,21 +169,20 @@ transect.num <- montpines$transect.num
 # linear index of transect-year combos 
 yrtranscombo=100*montpines$transect.num+montpines$Year.num 
 
-## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): this is needed for the summing up of infl nums to predict new plts
+## Set up a logical variable that is whether there is surv or grwth data in a yr (0,1): 
+# this is needed for the summing up of infl nums to predict new plts
 # datayesno <- rep(1,length(montpines$surv))
 # datayesno[which(is.na(montpines$surv)==TRUE)] <- 0 
 
 ## ------------------------------------------------------------------------------------------------
 
 ## Make dataframe w new plts (that are likely recent seedlings) for each transect & yr ------------
+## only using years/trans in resurv areas 
 ## Make df that will hold data containing new plants
 
-###
-years <- unique(montpines$Year.num)
-years <- years[order(years)]
-montpines.newPlts <- as.data.frame(rep(unique(montpines$transect.num), each=length(years)))
-colnames(montpines.newPlts) <- "TransectNew.num" 
-montpines.newPlts$Year.num <- rep(years)
+resurv.montpines = montpines[montpines$resurveyarea == 1,]
+montpines.newPlts <- as.data.frame(unique(resurv.montpines[c("transect.num","Year.num")]))
+colnames(montpines.newPlts) <- c("TransectNew.num", "Year.num") 
 
 newPlts <- montpines[montpines$newplt == 1, ] # Identify new plants 
 num.newPlts <- newPlts %>%                    # Count N of newplts per yr&trans
@@ -197,9 +200,9 @@ montpines.newPlts$num.newPlts[montpines.newPlts$Year.num==1] <- NA         #Chan
 montpines.newPlts <- montpines.newPlts %>% mutate(num.newPlts1=lead(num.newPlts))  
 
 ## Remove 2 lines that correspond to transect-year combos that are not in the main data file
-montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
-yrtrans.unq <- unique(yrtranscombo)
-montpines.newPlts <- montpines.newPlts[montpines.newPlts$yrtranscombo %in% yrtrans.unq,]
+#montpines.newPlts$yrtranscombo=100*montpines.newPlts$TransectNew.num+montpines.newPlts$Year.num
+#yrtrans.unq <- unique(yrtranscombo)
+#montpines.newPlts <- montpines.newPlts[montpines.newPlts$yrtranscombo %in% yrtrans.unq,]
 
 montpines.newPlts <- montpines.newPlts[is.na(montpines.newPlts$num.newPlts1) == FALSE,] #I am not sure why this is necessary but in erio code...
 newplts <- montpines.newPlts$num.newPlts1
@@ -234,6 +237,21 @@ mp4jags <- montpines %>%
          transect.num)
 
 ###########################################
+# These are variables used in the prior distributions that are meant to set a climate variable to zero or not
+cldmin = -1e-10
+cldmax = 1e-10
+
+fogmin = -1000
+fogmax = 1000
+
+tmayseptmin = -1000
+tmayseptmax = 1000
+
+toctaprmin = -1e-10
+toctaprmax = 1e-10
+
+precipmin = -1000
+precipmax = 1000
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
 jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
@@ -241,22 +259,18 @@ jags.mod <- run.jags('montpines_JAGSmodel.R', # Call to specific jags model
                      data=mp4jags,
                      burnin=500,
                      thin=10,
-                     sample=300,
+                     sample=10000,
                      adapt=100,
                      method="parallel")
 
-failed.jags('model')
-
-
-save(jags.mod, file=paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rdata'))
-saveRDS(jags.mod, paste0('modeloutput/mp_JAGSmod_',modname,"_",Sys.Date(),'.rds'))
+ failed.jags('model')
 
 
 ## ------------------------------------------------------------------------------------------------
 
-# 
+saveRDS(jags.mod, file = 'jags_mod_output_Apr18_22.rds') 
 # ## LOOK AT MODEL OUTPUT ---------------------------------------------------------------------------
-# jags.mod <- readRDS("erbr_JAGSmod_c3t10s30b10_noYRE_210613.rds")
+jags.mod <- readRDS("jags_mod_output_Apr18_22.rds")
 summary(jags.mod)
 plot(jags.mod)
 summ.mod <- summary(jags.mod)
@@ -280,4 +294,4 @@ corrplot(cor.chains, method="circle", type="lower")
 ## ** Make bar graph comparing median param ests & 80% CIs b/w diff datasets **
 ## ------------------------------------------------------------------------------------------------
 
-
+parallel.seeds("base::BaseRNG",4)
