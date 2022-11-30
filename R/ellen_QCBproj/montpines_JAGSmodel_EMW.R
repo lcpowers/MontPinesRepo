@@ -22,9 +22,9 @@ for(i in 1:Ncases){
   regression_mean[goodrows[i]-lagvals[i]+1] <- grwth_intercept 
                                               + grwth_dbhCoef*DBH[goodrows[i]-lagvals[i]]                  # growth coefficient
                                                + grwth_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]     # Summer T coef
-                                               + grwth_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]       # Winter T coef 
+     #                                          + grwth_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]       # Winter T coef 
                                                + grwth_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]] # Annual Precip coef
-                                               + grwth_cloudCoef*cloud[goodrows[i]-lagvals[i]]                 # cloud coef
+     #                                          + grwth_cloudCoef*cloud[goodrows[i]-lagvals[i]]                 # cloud coef
                                                + grwth_fogCoef*fog[goodrows[i]-lagvals[i]]                     # fog coef
       + grwth_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]
       
@@ -33,12 +33,12 @@ for(i in 1:Ncases){
   ## Survival prob, based on the last years observed size 
   Surv_mu[goodrows[i]-lagvals[i]+1] <- 1/(1+exp(-(surv_intercept
                                                   + surv_dbhCoef*DBH[goodrows[i]-lagvals[i]]
-                                                  + surv_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]
-                                                  + surv_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]
-                                                  + surv_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]]
-                                                  + surv_cloudCoef*cloud[goodrows[i]-lagvals[i]]
-                                                  + surv_fogCoef*fog[goodrows[i]-lagvals[i]]
-                                                  + surv_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]))) 
+                                                   + surv_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]
+                                                  # + surv_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]
+                                                   + surv_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]]
+                                                  # + surv_cloudCoef*cloud[goodrows[i]-lagvals[i]]
+                                                   + surv_fogCoef*fog[goodrows[i]-lagvals[i]]
+                                                   + surv_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]))) 
                                                   
      
   ## This is the loop of remaining lagged yrs for this row i: note that the : operator is diff in jags than r & can't be decreasing, hence the use of negative lag: also, if lag=1, then this will be from 0 to -1, & the loop will be skipped 
@@ -47,23 +47,23 @@ for(i in 1:Ncases){
     
      regression_mean[j+1] <- grwth_intercept 
                              + grwth_dbhCoef*regression_mean[j]      # growth coefficient
-                             + grwth_TempMaySeptCoef*TempMaySept[j]     #  Summer T coef
-                             + grwth_TempOctAprCoef*TempOctApr[j]       # Winter T coef 
-                             + grwth_PrecipAugJulyCoef*PrecipAugJuly[j] # Annual Precip coef
-                             + grwth_cloudCoef*cloud[j]                 # cloud coef
-                             + grwth_fogCoef*fog[j]                     # fog coef
-                             + grwth_Transect_randomeffect[transect.num[j]] # transect(site) random effect
+                              + grwth_TempMaySeptCoef*TempMaySept[j]     #  Summer T coef
+                             # + grwth_TempOctAprCoef*TempOctApr[j]       # Winter T coef 
+                              + grwth_PrecipAugJulyCoef*PrecipAugJuly[j] # Annual Precip coef
+                             # + grwth_cloudCoef*cloud[j]                 # cloud coef
+                              + grwth_fogCoef*fog[j]                     # fog coef
+                              + grwth_Transect_randomeffect[transect.num[j]] # transect(site) random effect
                            
      r.growth[j+1] <- exp(grwthvar_intercept + grwthvar_dbhCoef*regression_mean[j])
 
      Surv_mu[j+1] <- Surv_mu[j]*1/(1+exp(-(surv_intercept 
-                                          + surv_dbhCoef*regression_mean[j]
-                                          + surv_TempMaySeptCoef*TempMaySept[j]
-                                          + surv_TempOctAprCoef*TempOctApr[j]
-                                          + surv_PrecipAugJulyCoef*PrecipAugJuly[j]
-                                          + surv_cloudCoef*cloud[j]
-                                          + surv_fogCoef*fog[j]
-                                          + surv_Transect_randomeffect[transect.num[j]])))
+                                           + surv_dbhCoef*regression_mean[j]
+                                            + surv_TempMaySeptCoef*TempMaySept[j]
+                                           # + surv_TempOctAprCoef*TempOctApr[j]
+                                           # + surv_PrecipAugJulyCoef*PrecipAugJuly[j]
+                                           # + surv_cloudCoef*cloud[j]
+                                            + surv_fogCoef*fog[j]
+                                            + surv_Transect_randomeffect[transect.num[j]])))
                                             
    } #End lags loop 
 } #End of going through cases for growth and survival
@@ -110,7 +110,7 @@ for(i in 1:Ncases){
   #####################################################################
   #this is a little loop to maybe help debug repro fitting - it is throwing an error with some undefined repro rows ? 
   for (i in 1:Nexcludedcases){
-    repro_size[excluded.repro.rows[i]] <- 0
+    repro_size[rows.excluded.repro[i]] <- 0
   }
   
   #####################################################################
@@ -161,8 +161,8 @@ r_disp ~ dunif(0,50)
 # [A DuMouchel prior may be better than a Gamma prior]
 
 ## GROWTH  
-grwth_intercept ~ dunif(-10,10) ## Do these values make sense for growthintercept~DBH?
-grwth_dbhCoef ~ dunif(-3,3) ## Do these values make sense for growth~DBH?
+grwth_intercept ~ dunif(-5,5) ## Do these values make sense for DBH?
+grwth_dbhCoef ~ dunif(-3,3) ## Do these values make sense for DBH?
 grwth_TempMaySeptCoef ~ dunif(tmayseptmin,tmayseptmax) ## Do these values make sense for DBH?
 grwth_TempOctAprCoef ~ dunif(toctaprmin,toctaprmax) ## Do these values make sense for DBH?
 grwth_PrecipAugJulyCoef ~ dunif(precipmin,precipmax) ## Do these values make sense for DBH?
@@ -243,7 +243,7 @@ repro_Transect_precision ~ dunif(0,1)
 #response# DBH
 #residual# regression_residual
 #fitted# regression_fitted
-#data# Survs,Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,Nexcludedcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,excluded.repro.rows,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1,cloud1,cldmin,cldmax,fogmin,fogmax,precipmin,precipmax,tmayseptmin,tmayseptmax,toctaprmin,toctaprmax
+#data# Survs,Ncases,Ngrowcases,Ndirectszcases,Nindirectszcases,Nexcludedcases,goodrows,goodgrowrows,lagvals,DBH,TempMaySept,TempOctApr,PrecipAugJuly,fog,cloud,transect.num,newPltlines,rows.wo.sz.alive,rows.w.sz,rows.excluded.repro,yrtranscombo,newplt.yrtranscombo,TempOctApr1,TempMaySept1,PrecipAugJuly1,fog1,cloud1,cldmin,cldmax,fogmin,fogmax,precipmin,precipmax,tmayseptmin,tmayseptmax,toctaprmin,toctaprmax
 
 ######################################################################################################
 #### Initial values 
@@ -272,7 +272,7 @@ inits{
   "surv_cloudCoef" <- 0
   "surv_Transect_precision" <- 0.001
   
-  "maxRepro" <- 0.1
+  "maxRepro" <- 0.01 
   "repro_intercept" <- 0.01
   "reproDBHcoef" < -1/10
   "repro_TempMaySeptCoef" <- 0
@@ -285,75 +285,74 @@ inits{
   # "repro_size" <- 0.01
 }
 
-inits{
-
-  "grwth_intercept" <- 1.5
-  "grwth_dbhCoef" <- 1
-  "grwth_TempMaySeptCoef" <- 0
-  "grwth_TempOctAprCoef" <- 0
-  "grwth_PrecipAugJulyCoef" <- 0
-  "grwth_fogCoef" <- 0
-  "grwth_cloudCoef" <- 0
-  "grwth_Transect_precision" <- 2
-
-  "grwthvar_intercept" <- 0.1
-  "grwthvar_dbhCoef" <- 0.1
-
-  "surv_intercept" <- -10
-  "surv_dbhCoef" <- -0.01
-  "surv_TempMaySeptCoef" <- 0
-  "surv_TempOctAprCoef" <- 0
-  "surv_PrecipAugJulyCoef" <- 0
-  "surv_fogCoef" <- 0
-  "surv_cloudCoef" <- 0
-  "surv_Transect_precision" <- 0.001
-
-  "maxRepro" <- 10
-  "repro_intercept" <- 0.01
-  "reproDBHcoef" < -1
-  "repro_TempMaySeptCoef" <- 0
-  "repro_TempOctAprCoef" <- 0
-  "repro_PrecipAugJulyCoef" <- 0
-  "repro_fogCoef" <- 0
-  "repro_cloudCoef" <- 0
-  "repro_Transect_precision" <- 0.01
-  "r.newplts" <- 1
-  # "repro_size" <- 0.01
-
-}
-
-inits{
-
-  "grwth_intercept" <- 1.5
-  "grwth_dbhCoef" <- 1
-  "grwth_TempMaySeptCoef" <- 0
-  "grwth_TempOctAprCoef" <- 0
-  "grwth_PrecipAugJulyCoef" <- 0
-  "grwth_fogCoef" <- 0
-  "grwth_cloudCoef" <- 0
-  "grwth_Transect_precision" <- 2
-
-  "grwthvar_intercept" <- 0.01
-  "grwthvar_dbhCoef" <- -0.01
-
-  "surv_intercept" <- -20
-  "surv_dbhCoef" <- 0.01
-  "surv_TempMaySeptCoef" <- 0
-  "surv_TempOctAprCoef" <- 0
-  "surv_PrecipAugJulyCoef" <- 0
-  "surv_fogCoef" <- 0
-  "surv_cloudCoef" <- 0
-  "surv_Transect_precision" <- 0.001
-
-  "maxRepro" <- 5 # this seems unreasonable (was 10, now 5)
-  "repro_intercept" <- 0.01
-  "reproDBHcoef" < -1
-  "repro_TempMaySeptCoef" <- 0
-  "repro_TempOctAprCoef" <- 0
-  "repro_PrecipAugJulyCoef" <- 0
-  "repro_fogCoef" <- 0
-  "repro_cloudCoef" <- 0
-  "repro_Transect_precision" <- 0.01
-  "r.newplts" <- 1
-  # "repro_size" <- 0.01
-}
+# inits{
+# 
+#   "grwth_intercept" <- 1.5
+#   "grwth_dbhCoef" <- 1
+#   "grwth_TempMaySeptCoef" <- 0
+#   "grwth_TempOctAprCoef" <- 0
+#   "grwth_PrecipAugJulyCoef" <- 0
+#   "grwth_fogCoef" <- 0
+#   "grwth_cloudCoef" <- 0
+#   "grwth_Transect_precision" <- 2
+# 
+#   "grwthvar_intercept" <- 0.1
+#   "grwthvar_dbhCoef" <- 0.1
+# 
+#   "surv_intercept" <- -10
+#   "surv_dbhCoef" <- -0.01
+#   "surv_TempMaySeptCoef" <- 0
+#   "surv_TempOctAprCoef" <- 0
+#   "surv_PrecipAugJulyCoef" <- 0
+#   "surv_fogCoef" <- 0
+#   "surv_cloudCoef" <- 0
+#   "surv_Transect_precision" <- 0.001
+#   
+#   "maxRepro" <- 0.01 
+#   "repro_intercept" <- 0.01
+#   "reproDBHcoef" < -1
+#   "repro_TempMaySeptCoef" <- 0
+#   "repro_TempOctAprCoef" <- 0
+#   "repro_PrecipAugJulyCoef" <- 0
+#   "repro_fogCoef" <- 0
+#   "repro_cloudCoef" <- 0
+#   "repro_Transect_precision" <- 0.01
+#   "r.newplts" <- 1
+#   # "repro_size" <- 0.01
+# 
+# }
+# inits{
+# 
+#   "grwth_intercept" <- 1.5
+#   "grwth_dbhCoef" <- 1
+#   "grwth_TempMaySeptCoef" <- 0
+#   "grwth_TempOctAprCoef" <- 0
+#   "grwth_PrecipAugJulyCoef" <- 0
+#   "grwth_fogCoef" <- 0
+#   "grwth_cloudCoef" <- 0
+#   "grwth_Transect_precision" <- 2
+# 
+#   "grwthvar_intercept" <- 0.01
+#   "grwthvar_dbhCoef" <- -0.01
+# 
+#   "surv_intercept" <- -20
+#   "surv_dbhCoef" <- 0.01
+#   "surv_TempMaySeptCoef" <- 0
+#   "surv_TempOctAprCoef" <- 0
+#   "surv_PrecipAugJulyCoef" <- 0
+#   "surv_fogCoef" <- 0
+#   "surv_cloudCoef" <- 0
+#   "surv_Transect_precision" <- 0.001
+# 
+#   "maxRepro" <- 0.01 #this seems unreasonable 
+#   "repro_intercept" <- 0.01
+#   "reproDBHcoef" < -1
+#   "repro_TempMaySeptCoef" <- 0
+#   "repro_TempOctAprCoef" <- 0
+#   "repro_PrecipAugJulyCoef" <- 0
+#   "repro_fogCoef" <- 0
+#   "repro_cloudCoef" <- 0
+#   "repro_Transect_precision" <- 0.01
+#   "r.newplts" <- 1
+#   # "repro_size" <- 0.01
+# }
