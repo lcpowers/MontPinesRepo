@@ -21,11 +21,11 @@ for(i in 1:Ncases){
   ## Do first lag, which must use the starting size (DBH)
   regression_mean[goodrows[i]-lagvals[i]+1] <- grwth_intercept 
                                               + grwth_dbhCoef*DBH[goodrows[i]-lagvals[i]]                  # growth coefficient
-                                               + grwth_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]     # Summer T coef
-     #                                          + grwth_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]       # Winter T coef 
-                                               + grwth_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]] # Annual Precip coef
-     #                                          + grwth_cloudCoef*cloud[goodrows[i]-lagvals[i]]                 # cloud coef
-                                               + grwth_fogCoef*fog[goodrows[i]-lagvals[i]]                     # fog coef
+                                              + grwth_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]     # Summer T coef
+                                              + grwth_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]       # Winter T coef 
+                                              + grwth_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]] # Annual Precip coef
+                                              + grwth_cloudCoef*cloud[goodrows[i]-lagvals[i]]                 # cloud coef
+                                              + grwth_fogCoef*fog[goodrows[i]-lagvals[i]]                     # fog coef
       + grwth_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]
       
   r.growth[goodrows[i]-lagvals[i]+1] <- exp(grwthvar_intercept + grwthvar_dbhCoef*DBH[goodrows[i]-lagvals[i]]) 
@@ -33,12 +33,12 @@ for(i in 1:Ncases){
   ## Survival prob, based on the last years observed size 
   Surv_mu[goodrows[i]-lagvals[i]+1] <- 1/(1+exp(-(surv_intercept
                                                   + surv_dbhCoef*DBH[goodrows[i]-lagvals[i]]
-                                                   + surv_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]
-                                                  # + surv_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]
-                                                   + surv_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]]
-                                                  # + surv_cloudCoef*cloud[goodrows[i]-lagvals[i]]
-                                                   + surv_fogCoef*fog[goodrows[i]-lagvals[i]]
-                                                   + surv_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]))) 
+                                                  + surv_TempMaySeptCoef*TempMaySept[goodrows[i]-lagvals[i]]
+                                                  + surv_TempOctAprCoef*TempOctApr[goodrows[i]-lagvals[i]]
+                                                  + surv_PrecipAugJulyCoef*PrecipAugJuly[goodrows[i]-lagvals[i]]
+                                                  + surv_cloudCoef*cloud[goodrows[i]-lagvals[i]]
+                                                  + surv_fogCoef*fog[goodrows[i]-lagvals[i]]
+                                                  + surv_Transect_randomeffect[transect.num[goodrows[i]-lagvals[i]]]))) 
                                                   
      
   ## This is the loop of remaining lagged yrs for this row i: note that the : operator is diff in jags than r & can't be decreasing, hence the use of negative lag: also, if lag=1, then this will be from 0 to -1, & the loop will be skipped 
@@ -46,24 +46,24 @@ for(i in 1:Ncases){
   for (j in (goodrows[i]-lagvals[i]+1):(goodrows[i]-1)) { # For the consecutive rows of no data that correspond to good row i # tried removing +1 and -1 from range
     
      regression_mean[j+1] <- grwth_intercept 
-                             + grwth_dbhCoef*regression_mean[j]      # growth coefficient
-                              + grwth_TempMaySeptCoef*TempMaySept[j]     #  Summer T coef
-                             # + grwth_TempOctAprCoef*TempOctApr[j]       # Winter T coef 
-                              + grwth_PrecipAugJulyCoef*PrecipAugJuly[j] # Annual Precip coef
-                             # + grwth_cloudCoef*cloud[j]                 # cloud coef
-                              + grwth_fogCoef*fog[j]                     # fog coef
-                              + grwth_Transect_randomeffect[transect.num[j]] # transect(site) random effect
+                             + grwth_dbhCoef*regression_mean[j]             # growth coefficient
+                             + grwth_TempMaySeptCoef*TempMaySept[j]         #  Summer T coef
+                             + grwth_TempOctAprCoef*TempOctApr[j]           # Winter T coef 
+                             + grwth_PrecipAugJulyCoef*PrecipAugJuly[j]     # Annual Precip coef
+                             + grwth_cloudCoef*cloud[j]                     # cloud coef
+                             + grwth_fogCoef*fog[j]                         # fog coef
+                             + grwth_Transect_randomeffect[transect.num[j]] # transect(site) random effect
                            
      r.growth[j+1] <- exp(grwthvar_intercept + grwthvar_dbhCoef*regression_mean[j])
 
      Surv_mu[j+1] <- Surv_mu[j]*1/(1+exp(-(surv_intercept 
                                            + surv_dbhCoef*regression_mean[j]
-                                            + surv_TempMaySeptCoef*TempMaySept[j]
-                                           # + surv_TempOctAprCoef*TempOctApr[j]
-                                           # + surv_PrecipAugJulyCoef*PrecipAugJuly[j]
-                                           # + surv_cloudCoef*cloud[j]
-                                            + surv_fogCoef*fog[j]
-                                            + surv_Transect_randomeffect[transect.num[j]])))
+                                           + surv_TempMaySeptCoef*TempMaySept[j]
+                                           + surv_TempOctAprCoef*TempOctApr[j]
+                                           + surv_PrecipAugJulyCoef*PrecipAugJuly[j]
+                                           + surv_cloudCoef*cloud[j]
+                                           + surv_fogCoef*fog[j]
+                                           + surv_Transect_randomeffect[transect.num[j]])))
                                             
    } #End lags loop 
 } #End of going through cases for growth and survival
@@ -161,13 +161,13 @@ r_disp ~ dunif(0,50)
 # [A DuMouchel prior may be better than a Gamma prior]
 
 ## GROWTH  
-grwth_intercept ~ dunif(-5,5) ## Do these values make sense for DBH?
-grwth_dbhCoef ~ dunif(-3,3) ## Do these values make sense for DBH?
-grwth_TempMaySeptCoef ~ dunif(tmayseptmin,tmayseptmax) ## Do these values make sense for DBH?
-grwth_TempOctAprCoef ~ dunif(toctaprmin,toctaprmax) ## Do these values make sense for DBH?
-grwth_PrecipAugJulyCoef ~ dunif(precipmin,precipmax) ## Do these values make sense for DBH?
-grwth_fogCoef ~ dunif(fogmin,fogmax) ## Do these values make sense for DBH?
-grwth_cloudCoef ~ dunif(cldmin,cldmax) ## Do these values make sense for DBH? 
+grwth_intercept ~ dunif(-5,5) 
+grwth_dbhCoef ~ dunif(-3,3) 
+grwth_TempMaySeptCoef ~ dunif(tmayseptmin,tmayseptmax) 
+grwth_TempOctAprCoef ~ dunif(toctaprmin,toctaprmax) 
+grwth_PrecipAugJulyCoef ~ dunif(precipmin,precipmax) 
+grwth_fogCoef ~ dunif(fogmin,fogmax) 
+grwth_cloudCoef ~ dunif(cldmin,cldmax) 
 
 # ## Growth transect random effects
 for(transect.num_iterator in 1:5){
@@ -184,19 +184,27 @@ grwthvar_dbhCoef ~ dunif(-3,3)
 surv_intercept ~  dnorm(0, 10^-6) 
 surv_dbhCoef ~  dnorm(0, 10^-6) 
 
-surv_TempMaySeptCoef ~ dnorm(0,tmayseptmax)
+# Changing these all to unif so that they make sense with the tmin and max vals
+surv_TempMaySeptCoef ~ dunif(tmayseptmin, tmayseptmax)
+surv_TempOctAprCoef ~ dunif(toctaprmin, toctaprmax)
+surv_PrecipAugJulyCoef ~ dunif(precipmin, precipmax)
+surv_fogCoef ~ dunif(fogmin, fogmax)
+surv_cloudCoef ~ dunif(cldmin, cldmax)
+
+## Commented these out so that the min/max variables make sense across all coefs
+# surv_TempMaySeptCoef ~ dnorm(0,tmayseptmax)
 # surv_TempMaySeptCoef ~ dnorm(0, 10^-6) 
 
-surv_TempOctAprCoef ~ dnorm(0, toctaprmax)
+# surv_TempOctAprCoef ~ dnorm(0, toctaprmax)
 # surv_TempOctAprCoef ~ dnorm(0, 10^-6) 
 
-surv_PrecipAugJulyCoef ~ dnorm(0,precipmax)
+# surv_PrecipAugJulyCoef ~ dnorm(0,precipmax)
 # surv_PrecipAugJulyCoef ~ dnorm(0, 10^-6) 
 
-surv_fogCoef ~ dnorm(0, fogmax) 
+# surv_fogCoef ~ dnorm(0, fogmax) 
 # surv_fogCoef ~ dnorm(0, 10^-6) 
 
-surv_cloudCoef ~ dnorm(0, cldmax) 
+# surv_cloudCoef ~ dnorm(0, cldmax) 
 # surv_cloudCoef ~ dnorm(0, 10^-6) 
 
 ## Survival transect random effects
@@ -211,19 +219,27 @@ repro_intercept ~ dnorm(0, 10^-6)
 r.newplts ~ dnorm(0.01,0.01)
 # repro_size ~ dunif(0,10)
 
-repro_TempMaySeptCoef ~ dnorm(0, tmayseptmax)
+# Changing these all to unif so that they make sense with the tmin and max vals
+repro_TempMaySeptCoef ~ dunif(tmayseptmin, tmayseptmax)
+repro_TempOctAprCoef ~ dunif(toctaprmin, toctaprmax)
+repro_PrecipAugJulyCoef ~ dunif(precipmin, precipmax)
+repro_fogCoef ~ dunif(fogmin, fogmax)
+repro_cloudCoef ~ dunif(cldmin, cldmax)
+
+## Commented these out so that the min/max variables make sense across all coefs
+# repro_TempMaySeptCoef ~ dnorm(0, tmayseptmax)
 # repro_TempMaySeptCoef ~ dnorm(0, 10^-6)
 
-repro_TempOctAprCoef ~ dnorm(0, toctaprmax)
+# repro_TempOctAprCoef ~ dnorm(0, toctaprmax)
 # repro_TempOctAprCoef ~ dnorm(0, 10^-6)
 
-repro_PrecipAugJulyCoef ~ dnorm(0, precipmax)
+# repro_PrecipAugJulyCoef ~ dnorm(0, precipmax)
 # repro_PrecipAugJulyCoef ~ dnorm(0, 10^-6)
 
-repro_fogCoef ~ dnorm(0, fogmax)
+# repro_fogCoef ~ dnorm(0, fogmax)
 # repro_fogCoef ~ dnorm(0, 10^-6)
 
-repro_cloudCoef ~ dnorm(0, cldmax)
+# repro_cloudCoef ~ dnorm(0, cldmax)
 # repro_cloudCoef ~ dnorm(0, 10^-6)
 
 ## Repro transect random effects 
