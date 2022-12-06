@@ -21,7 +21,7 @@ library(coda)
 library(corrplot)
 
 ## SET WD ON LOCAL COMPUTER (WHERE JAGS SCRIPT IS LOCATED) ----------------------------------------
-setwd("./R/") # should work if within project but will give error if already in 'R' folder or elsewhere
+if(basename(getwd())!="R") setwd("./R/") # should work if within project but will give error if already in 'R' folder or elsewhere
 
 montpines <- read_csv("../data/fullannual data C.csv") %>% 
   select(-1) %>% ## Get rid of first column that seems like old row numbers from elsewhere
@@ -181,8 +181,8 @@ Nindirectszcases <- length(rows.wo.sz.alive)
 
 #rows not included in either rows.wo.sz.alive or rows.w.sz: 
 included.repro.rows = c(rows.wo.sz.alive, rows.w.sz) 
-excluded.repro.rows <- base::setdiff(montpines$RowNum, included.repro.rows)
-Nexcludedcases <- length(excluded.repro.rows)
+rows.excluded.repro <- base::setdiff(montpines$RowNum, included.repro.rows) #setdiff finds elements in X but not in Y 
+Nexcludedcases <- length(rows.excluded.repro)
 
 ## Make yr and transect numerical to use in jags as random effects ------
 montpines$Year.num <- as.factor(montpines$yr) %>% as.numeric()
@@ -201,11 +201,15 @@ yrtranscombo=100*montpines$transect.num+montpines$Year.num
 # Isolate resurvey rows of mont pines df 
 resurv.montpines = montpines[montpines$resurveyarea == 1,]
 
-# Data frame of unique transect-year combos
-montpines.newPlts <- unique(resurv.montpines[c("transect.num","Year.num")])
+# Data frame of unique transect-year combos for resurveyed areas
+montpines.newPlts <- select(resurv.montpines,transect.num,Year.num) %>% unique()
 colnames(montpines.newPlts) <- c("TransectNew.num", "Year.num") 
 
-newPlts <- montpines[montpines$newplt == 1, ]
+## Get first case of new plant==1 by sitetag
+newPlts <- montpines %>% filter(newplt==1) %>% 
+  group_by(sitetag) %>% slice(1)
+
+#montpines[montpines$newplt == 1, ]
 
 # Create dataframe what has the number of new plants per year-site combo
 num.newPlts <- newPlts %>% # pull new plt rows from original df
@@ -216,9 +220,14 @@ num.newPlts <- newPlts %>% # pull new plt rows from original df
 montpines.newPlts <- left_join(montpines.newPlts, num.newPlts, 
                                by=c("TransectNew.num", "Year.num"))
 
+
+
 ###### These seem like relevant&misleading zeros? could be a little fishy...or maybe not? #####
 ## montpines.newPlts$num.newPlts[is.na(montpines.newPlts$num.newPlts)] <- 0   #Change NAs (no new plants) to zeros
 montpines.newPlts$num.newPlts[montpines.newPlts$Year.num==1] <- NA         #Change new plts in year 1 to NA
+
+ggplot(montpines.newPlts,aes(x=Year.num,y=num.newPlts,color=as.factor(TransectNew.num)))+
+  geom_point()+geom_line()
 
 ## Add column so new plts in t+1 match year t. Note: variables w '1' at the end represent t+1 data
 # OLD # montpines.newPlts <- montpines.newPlts %>% mutate(num.newPlts1=lead(num.newPlts)) # This needs to be done by site
@@ -264,25 +273,30 @@ mp4jags <- montpines %>%
 
 ###########################################
 # These are variables used in the prior distributions that are meant to set a climate variable to zero or not
-# These values adjust the precision (inverse of variance) of the prior distribution so very large values here mean very small variance 
+# These values adjust the precision (inverse of variance) of the prior distribution so very large precision values here mean very small variance (i.e., forcing it to zero?)
 
-cldmin = -1e-10
-cldmax = 1e-10
 
-fogmin = -1000
-fogmax = 1000
+# Big and small names are relative to uniform distibutions
+big = 1e6 # This is a large precision value that will make for vary narrow priors (near zero)
+small = 1e-6 # Grabbed this from vals previously used in dnorm for priors
 
-tmayseptmin = -1000
-tmayseptmax = 1000
+cldmin = -small
+cldmax = small
 
-toctaprmin = -1e-10
-toctaprmax = 1e-10
+fogmin = -big
+fogmax = big
 
-precipmin = -1000
-precipmax = 1000
+tmayseptmin = -small
+tmayseptmax = small
+
+toctaprmin = -big
+toctaprmax = big
+
+precipmin = -big
+precipmax = big
 
 ## RUN ASSOCIATED JAGS MODEL ----------------------------------------------------------------------
-jags.mod <- run.jags('montpines_JAGSmodel_EMW.R', # Call to specific jags model
+jags.mod <- run.jags('mp_JAGSmodel_Nov2022.R', # Call to specific jags model
                      n.chains=3,
                      data=mp4jags,
                      burnin=500,
@@ -291,10 +305,13 @@ jags.mod <- run.jags('montpines_JAGSmodel_EMW.R', # Call to specific jags model
                      adapt=100,
                      method="parallel")
 
-failed.jags('model')
+# failed.jags('model')
+
+saveRDS(jags.mod, file = 'modeloutput/zeroing_cld_sT_full.rds') 
+jags.mod <- readRDS("modeloutput/zeroing_cld_sT_full.rds")
+
 
 # ## LOOK AT MODEL OUTPUT ---------------------------------------------------------------------------
-jags.mod <- readRDS("jags_mod_output_Apr18_22.rds")
 summary(jags.mod)
 plot(jags.mod)
 summ.mod <- summary(jags.mod)
