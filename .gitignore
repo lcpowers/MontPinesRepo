@@ -2,6 +2,9 @@
 .Rhistory
 .Rapp.history
 
+# output files
+R/modeloutput/
+
 # Session Data files
 .RData
 

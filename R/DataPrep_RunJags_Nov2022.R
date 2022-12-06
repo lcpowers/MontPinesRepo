@@ -211,7 +211,7 @@ newPlts <- montpines %>% filter(newplt==1) %>%
 
 #montpines[montpines$newplt == 1, ]
 
-# Create dataframe what has the number of new plants per year-site combo
+# Create dataframe that has the number of new plants per year-site combo
 num.newPlts <- newPlts %>% # pull new plt rows from original df
   group_by("TransectNew.num"=transect.num,Year.num) %>% 
   summarise(num.newPlts=n()) # Count N of newplts per yr&trans
